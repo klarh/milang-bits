@@ -1,6 +1,6 @@
 # milang-bits: Suggested Subprojects
 
-Optional "batteries" for the [milang](../milang-copilot) programming language.
+Optional "batteries" for the milang programming language.
 Each subproject lives in its own directory at the repo root and is imported
 as a regular `.mi` module. C backing libraries use milang's built-in C FFI
 (`import'` with `.h` headers) — no special infrastructure needed.
