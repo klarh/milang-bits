@@ -17,6 +17,9 @@ as a regular `.mi` module. C backing libraries use milang's built-in C FFI
 - **C under the hood when it matters**: milang compiles to C and has first-class
   FFI; performance-critical bits (arrays, hashing, crypto, regex) can wrap
   proven C libraries and expose a milang-friendly API.
+- **Powerful domain-specific languages**: With the aggressive compile-time
+  reduction inherent in milang, it often makes sense to build up domain-
+  specific languages for a given application.
 
 ---
 
@@ -63,6 +66,22 @@ Fixed-size dense vectors (Vec2, Vec3, Vec4) and matrices (Mat3, Mat4):
 - Intended for graphics, physics, and spatial work — not to be confused
   with `array` (general-purpose growable container).
 
+### `iter` — Lazy Iteration Protocol
+A unified lazy iteration abstraction that works across `List`, `Array`,
+file lines, map entries, and any user-defined sequence:
+
+- **Core protocol**: `next` returns `Maybe` — `Just {val; rest}` or
+  `Nothing`. Any type that implements `next` works with all combinators.
+- **Combinators**: `map`, `filter`, `take`, `drop`, `zip`, `flatMap`,
+  `enumerate`, `takeWhile`, `dropWhile`, `scan`, `chunk`, `window`.
+- **Collectors**: `toList`, `toArray`, `fold`, `sum`, `count`, `forEach`.
+- Lazy by default — no intermediate collections are allocated. Only
+  `toList`/`toArray`/`fold` force evaluation.
+- Extensible via open function chaining: define `iter val = val -> MyType = ...`
+  to make any type iterable.
+- Enables expressive pipelines:
+  `file |> lines |> filter (startsWith "#") |> take 10 |> toList`
+
 ---
 
 ## I/O & Filesystem
@@ -99,9 +118,24 @@ Parse text/binary formats into milang records and lists, and serialize back:
 - C backing: use cJSON or similar for JSON; hand-rolled or existing C libs
   for the rest.
 
+### `binary` — Binary Data & Wire Protocols
+Read and write binary data with a declarative DSL for defining formats.
+Essential for file formats, network protocols, and compact serialization:
+
+- **Primitives**: `u8`, `u16`, `u32`, `u64`, `i8`, `i16`, `i32`, `i64`,
+  `f32`, `f64` — with explicit endianness (`u16be`, `u16le`).
+- **Combinators**: `bytes n` (fixed-length), `cstring` (null-terminated),
+  `prefixed` (length-prefixed), `padded n`.
+- **Struct DSL**: define a format as a record spec, decode/encode in one pass.
+- **Byte buffer**: mutable buffer backed by C `malloc` for building packets.
+- Pure decode functions (`:~ []`); buffer construction may need a capability
+  or return a new buffer value.
+- Foundation for `serialization`'s MessagePack and for `net` protocol
+  implementations.
+
 ---
 
-## Networking & Concurrency
+## Networking
 
 ### `net` — Networking
 - **TCP**: connect, listen, accept, send, receive — wrapping POSIX sockets.
@@ -112,13 +146,6 @@ Parse text/binary formats into milang records and lists, and serialize back:
 - **URL parsing**: scheme, host, port, path, query, fragment.
 - TLS via system OpenSSL/LibreSSL when available.
 - All socket functions accept a new `world.net` capability sub-record.
-
-### `async` — Event Loop & Futures
-- Single-threaded event loop (epoll/kqueue) with timer and I/O callbacks.
-- `Future` ADT with `map`, `flatMap`, `await`, `race`, `all`.
-- Channels for communicating between concurrent tasks.
-- Integrates with `net` for async sockets and with `fileio` for async
-  disk I/O.
 
 ---
 
@@ -159,7 +186,53 @@ Column-oriented table built on `ndarray` and `array`:
 
 ---
 
+## Composition & Access
+
+### `lens` — Composable Record Access
+Lenses provide composable getters and setters for nested record access.
+Built on milang's `getField`/`setField` introspection:
+
+- **Core types**: `Lens` ADT wrapping a getter and setter pair.
+- **Constructors**: `field "name"` creates a lens for a record field.
+- **Composition**: `lens1 >> lens2` composes lenses for nested access.
+- **Operations**: `view lens record` (get), `set lens value record` (set),
+  `over lens f record` (modify via function).
+- Pure (`:~ []`) — lenses are just pairs of functions.
+- Enables expressive nested updates:
+  `over (address >> city) toUpper person`
+
+### `query` — Collection Query DSL
+A LINQ-style query builder for filtering, transforming, and aggregating
+in-memory collections. Leverages milang's DSL-oriented design:
+
+- **Pipeline operations**: `from`, `where`, `select`, `orderBy`, `groupBy`,
+  `limit`, `distinct`, `join`.
+- **Aggregations**: `count`, `sum`, `avg`, `min`, `max`.
+- Operates on any iterable (via `iter` protocol).
+- Query descriptions are records — they can be inspected, composed, and
+  partially evaluated at compile time when the query shape is known.
+- Lighter-weight alternative to the full `dataframe` library for most
+  data processing tasks.
+
+---
+
 ## Text & Parsing
+
+### `parsec` — Parser Combinators
+A combinator library for building parsers from small, composable pieces.
+Milang's `|>` pipelines and partial evaluation make this a natural fit:
+
+- **Core combinators**: `satisfy`, `char`, `string`, `many`, `many1`,
+  `sepBy`, `choice`, `between`, `chainl1`.
+- **Sequencing**: `<>` (sequence two parsers), `<|>` (try alternative),
+  `map` (transform result).
+- **Error reporting**: position tracking, expected-vs-found messages.
+- **Character classes**: `digit`, `letter`, `alphaNum`, `space`, `upper`,
+  `lower`, `oneOf`, `noneOf`.
+- With partial evaluation, parsers defined with literal combinators can
+  reduce at compile time into efficient state machines.
+- Foundation for building other libraries' parsers (`serialization`,
+  `datetime`, `fmt`).
 
 ### `regex` — Regular Expressions
 - Compile-once, match-many API: `compile`, `match`, `matchAll`, `test`.
@@ -199,15 +272,6 @@ The core language has `world.process.exec`, `world.process.exit`,
 - `which` (find executable on PATH).
 - Temporary directory helpers.
 
-### `crypto` — Hashing & Cryptography
-- **Hash functions**: SHA-256, SHA-512, BLAKE3, MD5 (legacy).
-- **HMAC** and constant-time comparison.
-- **Secure random bytes** (from `/dev/urandom` or equivalent).
-- Optionally: AES-GCM, ChaCha20-Poly1305, X25519 (wrapping OpenSSL or
-  libsodium).
-- All pure functions where possible (hash, hmac); secure-random requires
-  a capability.
-
 ### `logging` — Structured Logging
 - Levels: trace, debug, info, warn, error.
 - Structured key-value fields (milang records map naturally).
@@ -225,11 +289,52 @@ The core language has `world.process.exec`, `world.process.exit`,
 - CLI runner with colored pass/fail output and failure diffs.
 
 ### `argparse` — Command-Line Argument Parsing
-- Declarative option/flag/positional definitions as milang records.
-- Auto-generated `--help` text.
-- Type-safe parsing into a result record.
-- Sub-command support.
+- Declarative option/flag/positional definitions as milang ADTs.
+- Auto-generated `--help` text (compile-time reducible when spec is literal).
+- Type-safe parsing into a `ParseResult` (Ok/Err) ADT.
+- Sub-command support via nested specs.
 - Builds on `world.argv` (pure once the argument list is obtained).
+
+### `color` — Terminal Colors & Styling
+ANSI escape code generation for styled terminal output:
+
+- **Styles**: `bold`, `dim`, `italic`, `underline`, `strikethrough`.
+- **Colors**: 16 standard colors, 256-color, and 24-bit RGB.
+- **Composable**: `style bold >> fg red >> text "error"` builds a styled
+  string via `|>` pipelines.
+- **Auto-detection**: check `TERM`/`NO_COLOR` environment variables to
+  disable styling when output is piped or unsupported.
+- Pure (`:~ []`) — produces strings with embedded escape codes.
+- Pairs with `logging`, `testing`, and `argparse` help text.
+
+### `state` — State Machine DSL
+Declarative state machine definitions using milang's ADTs and pattern
+matching:
+
+- **Define machines**: states and transitions as ADT constructors and
+  records.
+- **Transition function**: `step machine event` returns `Just newState` or
+  `Nothing` for invalid transitions.
+- **Guards**: conditional transitions via pattern matching guards.
+- **Hooks**: `onEnter`, `onExit`, `onTransition` callbacks.
+- Pure (`:~ []`) — the machine definition and stepping are pure functions;
+  side effects live in the hooks (which accept capabilities).
+- Useful for protocol implementations, game logic, UI flows, and
+  workflow engines.
+
+### `graph` — Graph Data Structures
+Directed and undirected graph representations with standard algorithms:
+
+- **Construction**: `addNode`, `addEdge`, `removeNode`, `removeEdge`.
+- **Adjacency**: `neighbors`, `inEdges`, `outEdges`, `degree`.
+- **Traversals**: BFS, DFS with visitor callbacks.
+- **Algorithms**: topological sort, shortest path (Dijkstra), cycle
+  detection, connected components, strongly connected components.
+- **Representation**: adjacency-list backed by `collections` maps.
+- Pure (`:~ []`) for the data structure; algorithms that need ordering use
+  a comparison function parameter.
+- Useful for dependency resolution, build systems, data pipelines, and
+  network topology.
 
 ---
 
@@ -237,8 +342,8 @@ The core language has `world.process.exec`, `world.process.exit`,
 
 | Phase | Subprojects | Rationale |
 |-------|------------|-----------|
-| **1 — Foundations** | `array`, `strings`, `collections`, `fileio`, `path` | Fill the biggest gaps in the core language |
-| **2 — Data & Interchange** | `serialization`, `fmt`, `math`, `regex` | Required for real-world data processing |
-| **3 — Numeric & Net** | `vectors`, `ndarray`, `net`, `datetime` | Unlocks scientific and networked programs |
-| **4 — DX & Production** | `testing`, `logging`, `os`, `argparse`, `crypto` | Developer experience and production-readiness |
-| **5 — Advanced** | `async`, `dataframe` | Power-user features that build on earlier phases |
+| **1 — Foundations** | `array`, `strings`, `collections`, `iter`, `fileio`, `path` | Fill the biggest gaps in the core language; `iter` is the composability glue |
+| **2 — Data & Interchange** | `parsec`, `serialization`, `binary`, `fmt`, `math`, `regex`, `lens` | `parsec` is a force multiplier for parsers; `lens` for nested data |
+| **3 — Numeric & Net** | `vectors`, `ndarray`, `net`, `datetime`, `query`, `state`, `graph` | Unlocks scientific, networked, and stateful programs |
+| **4 — DX & Production** | `testing`, `logging`, `os`, `argparse`, `color` | Developer experience and production-readiness |
+| **5 — Advanced** | `dataframe` | Power-user feature that builds on earlier phases |
