@@ -1,0 +1,99 @@
+-- serialization: JSON, CSV, and INI utilities
+--
+-- JSON: json_escape, json_string, json_val, to_json (flat records),
+--       to_json_array (flat lists)
+-- CSV:  parse_csv, parse_dsv, parse_csv_table, format_row, format_csv
+-- INI:  parse_ini (key=value with # comments)
+--
+-- Note: JSON serialization handles flat (non-nested) values only.
+-- Nested records/lists require recursive serialization which is not
+-- supported due to milang's module import constraints.
+
+-- Type detection helpers
+check_float s = (toFloat s) ->
+  Just _ = 1
+  Nothing = 0
+is_num v = (toInt (toString v)) ->
+  Just _ = 1
+  Nothing = check_float (toString v)
+
+-- JSON string escaping
+jesc_step acc ch = \
+  if (ch == "\"") (acc + "\\\"") \
+  (if (ch == "\\") (acc + "\\\\") \
+  (if (ch == "\n") (acc + "\\n") \
+  (if (ch == "\t") (acc + "\\t") \
+  (acc + ch))))
+json_escape s = fold jesc_step "" (split s "")
+
+-- Quote a string for JSON
+json_string s = "\"" + json_escape s + "\""
+
+-- Serialize a flat value to JSON
+json_val v = \
+  if (is_num v == 1) (toString v) \
+  (if (toString v == "True") ("true") \
+  (if (toString v == "False") ("false") \
+  (if (toString v == "Nothing") ("null") \
+  (json_string (toString v)))))
+
+-- Unwrap Maybe from getField
+unwrap_just v = v ->
+  Just x = x
+  Nothing = ""
+
+-- Build JSON object from flat record
+jf_step rec acc name = \
+  if (acc.first == 1) \
+    (setField (setField acc "first" 0) "out" \
+      (acc.out + json_string name + ": " + json_val (unwrap_just (getField rec name)))) \
+    (setField acc "out" \
+      (acc.out + ", " + json_string name + ": " + json_val (unwrap_just (getField rec name))))
+jf_seed = {out = ""; first = 1}
+get_out r = r.out
+
+-- Serialize flat record to JSON object string
+to_json rec = "{" + get_out (fold (jf_step rec) jf_seed (fieldNames rec)) + "}"
+
+-- Build JSON array from flat list
+ja_step acc v = \
+  if (acc.first == 1) \
+    (setField (setField acc "first" 0) "out" (acc.out + json_val v)) \
+    (setField acc "out" (acc.out + ", " + json_val v))
+ja_seed = {out = ""; first = 1}
+
+-- Serialize flat list to JSON array string
+to_json_array xs = "[" + get_out (fold ja_step ja_seed xs) + "]"
+
+-- CSV: parse into list of rows (list of field lists)
+parse_csv text = map (\row -> split row ",") (split text "\n")
+
+-- DSV: parse with custom delimiter
+parse_dsv delim text = map (\row -> split row delim) (split text "\n")
+
+-- CSV with header: returns {headers; rows}
+csv_table_step acc line_text = \
+  if (acc.first == 1) \
+    (setField (setField acc "first" 0) "headers" (split line_text ",")) \
+    (setField acc "rows" (push acc.rows (split line_text ",")))
+csv_table_seed = {headers = []; rows = []; first = 1}
+parse_csv_table text = fold csv_table_step csv_table_seed (split text "\n")
+
+-- Format a list as CSV row
+format_row xs = join "," (map toString xs)
+
+-- Format list of rows as CSV string
+format_csv rows = join "\n" (map format_row rows)
+
+-- INI/config parser (key=value, # comments, blank lines skipped)
+has_char s ch = indexOf s ch >= 0
+ini_line_step acc a_line = \
+  if (startsWith a_line "#") (acc) \
+  (if (a_line == "") (acc) \
+  (if (has_char a_line "=") \
+    (setField acc \
+      (slice a_line 0 (indexOf a_line "=")) \
+      (slice a_line ((indexOf a_line "=") + 1) (len a_line))) \
+    (acc)))
+ini_seed = {_type = "ini"}
+parse_ini text = fold ini_line_step ini_seed (split text "\n")

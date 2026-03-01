@@ -1,0 +1,56 @@
+-- Test serialization library
+s = import "../serialization.mi"
+
+check :~ [console]
+check label got expected world = \
+  if (toString got == toString expected) \
+    (world.io.println ("PASS: " + label)) \
+    (world.io.println ("FAIL: " + label + "\n  got:      " + toString got + "\n  expected: " + toString expected))
+
+main world =
+  -- json_escape
+  check "escape quotes" (s.json_escape "say \"hi\"") "say \\\"hi\\\"" world
+  check "escape newline" (s.json_escape "a\nb") "a\\nb" world
+  check "escape tab" (s.json_escape "a\tb") "a\\tb" world
+  check "escape backslash" (s.json_escape "a\\b") "a\\\\b" world
+  check "escape clean" (s.json_escape "hello") "hello" world
+  -- json_string
+  check "json_string" (s.json_string "hello") "\"hello\"" world
+  -- json_val
+  check "json_val int" (s.json_val 42) "42" world
+  check "json_val str" (s.json_val "hello") "\"hello\"" world
+  check "json_val true" (s.json_val True) "true" world
+  check "json_val false" (s.json_val False) "false" world
+  check "json_val null" (s.json_val Nothing) "null" world
+  -- to_json
+  rec = {name = "Alice"; age = 30}
+  check "to_json" (s.to_json rec) "{\"name\": \"Alice\", \"age\": 30}" world
+  -- to_json with booleans
+  rec2 = {active = True; count = 0}
+  check "to_json bool" (s.to_json rec2) "{\"active\": true, \"count\": 0}" world
+  -- to_json_array
+  check "json_array nums" (s.to_json_array [1, 2, 3]) "[1, 2, 3]" world
+  check "json_array strs" (s.to_json_array ["a", "b"]) "[\"a\", \"b\"]" world
+  check "json_array empty" (s.to_json_array []) "[]" world
+  -- parse_csv
+  check "parse_csv" (s.parse_csv "a,b\n1,2") [["a", "b"], ["1", "2"]] world
+  -- parse_dsv
+  check "parse_dsv tab" (s.parse_dsv "\t" "a\tb\n1\t2") [["a", "b"], ["1", "2"]] world
+  -- parse_csv_table
+  check "csv_table headers" (s.parse_csv_table "name,age\nAlice,30").headers ["name", "age"] world
+  check "csv_table rows" (s.parse_csv_table "name,age\nAlice,30").rows [["Alice", "30"]] world
+  -- format_row
+  check "format_row" (s.format_row [1, 2, 3]) "1,2,3" world
+  -- format_csv
+  check "format_csv" (s.format_csv [["a", "b"], ["1", "2"]]) "a,b\n1,2" world
+  -- parse_ini
+  ini = "# comment\nname=Alice\nage=30\n\ncity=NYC"
+  parsed = s.parse_ini ini
+  check "ini name" (s.unwrap_just (getField parsed "name")) "Alice" world
+  check "ini age" (s.unwrap_just (getField parsed "age")) "30" world
+  check "ini city" (s.unwrap_just (getField parsed "city")) "NYC" world
+  -- is_num
+  check "is_num int" (s.is_num 42) 1 world
+  check "is_num float" (s.is_num 3.14) 1 world
+  check "is_num str" (s.is_num "hello") 0 world
+  0
