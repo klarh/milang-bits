@@ -1,0 +1,60 @@
+-- Test iter library
+it = import "../iter.mi"
+
+check :~ [console]
+check label got expected world = \
+  if (toString got == toString expected) \
+    (world.io.println ("PASS: " + label)) \
+    (world.io.println ("FAIL: " + label + "\n  got:      " + toString got + "\n  expected: " + toString expected))
+
+main world =
+  -- takeWhile
+  check "takeWhile <4" (it.takeWhile (\x -> x < 4) [1, 2, 3, 4, 5]) [1, 2, 3] world
+  check "takeWhile all" (it.takeWhile (\x -> x < 10) [1, 2, 3]) [1, 2, 3] world
+  check "takeWhile none" (it.takeWhile (\x -> x < 0) [1, 2, 3]) [] world
+  check "takeWhile empty" (it.takeWhile (\x -> x < 4) []) [] world
+  -- dropWhile
+  check "dropWhile <4" (it.dropWhile (\x -> x < 4) [1, 2, 3, 4, 5]) [4, 5] world
+  check "dropWhile all" (it.dropWhile (\x -> x < 10) [1, 2, 3]) [] world
+  check "dropWhile none" (it.dropWhile (\x -> x < 0) [1, 2, 3]) [1, 2, 3] world
+  -- find
+  check "find hit" (it.find (\x -> x > 3) [1, 2, 3, 4, 5]) (Just 4) world
+  check "find miss" (it.find (\x -> x > 10) [1, 2, 3]) Nothing world
+  check "find empty" (it.find (\x -> x > 0) []) Nothing world
+  -- findIndex
+  check "findIndex hit" (it.findIndex (\x -> x > 3) [1, 2, 3, 4, 5]) (Just 3) world
+  check "findIndex miss" (it.findIndex (\x -> x > 10) [1, 2, 3]) Nothing world
+  -- partition
+  check "partition even yes" (it.partition (\x -> x % 2 == 0) [1, 2, 3, 4, 5]).yes [2, 4] world
+  check "partition even no" (it.partition (\x -> x % 2 == 0) [1, 2, 3, 4, 5]).no [1, 3, 5] world
+  check "partition empty yes" (it.partition (\x -> x > 0) []).yes [] world
+  -- intersperse
+  check "intersperse" (it.intersperse 0 [1, 2, 3]) [1, 0, 2, 0, 3] world
+  check "intersperse single" (it.intersperse 0 [1]) [1] world
+  check "intersperse empty" (it.intersperse 0 []) [] world
+  -- zip_with
+  check "zip_with add" (it.zip_with (\a b -> a + b) [1, 2, 3] [10, 20, 30]) [11, 22, 33] world
+  check "zip_with unequal" (it.zip_with (\a b -> a * b) [1, 2] [10, 20, 30]) [10, 40] world
+  -- count
+  check "count >2" (it.count (\x -> x > 2) [1, 2, 3, 4, 5]) 3 world
+  check "count none" (it.count (\x -> x > 10) [1, 2, 3]) 0 world
+  -- sum_by
+  check "sum_by square" (it.sum_by (\x -> x * x) [1, 2, 3]) 14 world
+  check "sum_by id" (it.sum_by (\x -> x) [1, 2, 3, 4]) 10 world
+  -- chunks
+  check "chunks 2" (it.chunks 2 [1, 2, 3, 4, 5]) [[1, 2], [3, 4], [5]] world
+  check "chunks 3" (it.chunks 3 [1, 2, 3, 4, 5, 6]) [[1, 2, 3], [4, 5, 6]] world
+  check "chunks empty" (it.chunks 2 []) [] world
+  -- windows
+  check "windows 3" (it.windows 3 [1, 2, 3, 4, 5]) [[1, 2, 3], [2, 3, 4], [3, 4, 5]] world
+  check "windows 2" (it.windows 2 [1, 2, 3]) [[1, 2], [2, 3]] world
+  check "windows too big" (it.windows 5 [1, 2]) [] world
+  -- span
+  check "span <3 fst" (it.span (\x -> x < 3) [1, 2, 3, 4, 5]).fst [1, 2] world
+  check "span <3 snd" (it.span (\x -> x < 3) [1, 2, 3, 4, 5]).snd [3, 4, 5] world
+  check "span all fst" (it.span (\x -> x < 10) [1, 2, 3]).fst [1, 2, 3] world
+  -- uniq
+  check "uniq" (it.uniq [1, 1, 2, 2, 2, 3, 1, 1]) [1, 2, 3, 1] world
+  check "uniq single" (it.uniq [5]) [5] world
+  check "uniq empty" (it.uniq []) [] world
+  0

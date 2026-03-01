@@ -1,0 +1,99 @@
+-- iter: list combinators beyond the prelude
+--
+-- Provides takeWhile, dropWhile, find, findIndex, partition,
+-- intersperse, zip_with, count, sum_by, chunks, windows, span, uniq.
+-- All functions use fold (no recursion) for module import compatibility.
+
+get_items r = r.items
+get_result r = r.result
+
+-- takeWhile: take elements while predicate holds
+tw_step pred acc x = \
+  if (acc.done == 1) (acc) \
+  (if (pred x) (setField acc "items" (push acc.items x)) \
+  (setField acc "done" 1))
+tw_seed = {items = []; done = 0}
+takeWhile pred xs = get_items (fold (tw_step pred) tw_seed xs)
+
+-- dropWhile: drop elements while predicate holds
+dw_step pred acc x = \
+  if (acc.dropping == 1) \
+    (if (pred x) (acc) (setField (setField acc "dropping" 0) "items" (push acc.items x))) \
+    (setField acc "items" (push acc.items x))
+dw_seed = {items = []; dropping = 1}
+dropWhile pred xs = get_items (fold (dw_step pred) dw_seed xs)
+
+-- find: first element matching predicate (returns Maybe)
+find_step pred acc x = \
+  if (acc.found == 1) (acc) \
+  (if (pred x) (setField (setField acc "found" 1) "result" (Just x)) (acc))
+find_seed = {found = 0; result = Nothing}
+find pred xs = get_result (fold (find_step pred) find_seed xs)
+
+-- findIndex: index of first match (returns Maybe Int)
+findi_step pred acc x = \
+  if (acc.found == 1) (acc) \
+  (if (pred x) (setField (setField acc "found" 1) "result" (Just acc.idx)) \
+  (setField acc "idx" (acc.idx + 1)))
+findi_seed = {found = 0; idx = 0; result = Nothing}
+findIndex pred xs = get_result (fold (findi_step pred) findi_seed xs)
+
+-- partition: split list by predicate into {yes; no}
+part_step pred acc x = \
+  if (pred x) (setField acc "yes" (push acc.yes x)) (setField acc "no" (push acc.no x))
+part_seed = {yes = []; no = []}
+partition pred xs = fold (part_step pred) part_seed xs
+
+-- intersperse: insert separator between elements
+inter_step sep acc x = \
+  if (acc.first == 1) (setField (setField acc "first" 0) "items" [x]) \
+  (setField acc "items" (push (push acc.items sep) x))
+inter_seed = {items = []; first = 1}
+intersperse sep xs = get_items (fold (inter_step sep) inter_seed xs)
+
+-- zip_with: combine two lists element-wise with a function
+head_unsafe xs = xs ->
+  [x, ...rest] = x
+tail_unsafe xs = xs ->
+  [x, ...rest] = rest
+zip_with f xs ys = map (\pair -> f (head_unsafe pair) (head_unsafe (tail_unsafe pair))) (zip xs ys)
+
+-- count: count elements matching predicate
+count pred xs = fold (\acc x -> if (pred x) (acc + 1) (acc)) 0 xs
+
+-- sum_by: sum after applying function to each element
+sum_by f xs = fold (\acc x -> acc + f x) 0 xs
+
+-- chunks: split list into groups of n
+chunk_step n acc x = \
+  if ((len acc.cur) >= n) \
+    (setField (setField acc "result" (push acc.result acc.cur)) "cur" [x]) \
+    (setField acc "cur" (push acc.cur x))
+chunk_seed = {result = []; cur = []}
+chunk_finalize r = if (r.cur == []) (r.result) (push r.result r.cur)
+chunks n xs = chunk_finalize (fold (chunk_step n) chunk_seed xs)
+
+-- windows: sliding window of size n
+win_step n acc x = \
+  if ((len acc.buf) < n) \
+    (setField acc "buf" (push acc.buf x)) \
+    (setField (setField acc "result" (push acc.result acc.buf)) "buf" (push (drop 1 acc.buf) x))
+win_seed = {result = []; buf = []}
+win_finalize n r = if ((len r.buf) == n) (push r.result r.buf) (r.result)
+windows n xs = win_finalize n (fold (win_step n) win_seed xs)
+
+-- span: split at first element where pred fails, returns {fst; snd}
+span_step pred acc x = \
+  if (acc.done == 1) (setField acc "snd" (push acc.snd x)) \
+  (if (pred x) (setField acc "fst" (push acc.fst x)) \
+  (setField (setField acc "done" 1) "snd" (push acc.snd x)))
+span_seed = {fst = []; snd = []; done = 0}
+span pred xs = fold (span_step pred) span_seed xs
+
+-- uniq: remove consecutive duplicates (uses toString for comparison)
+uniq_step acc x = \
+  if (acc.items == []) (setField (setField acc "prev" (toString x)) "items" [x]) \
+  (if (toString x == acc.prev) (acc) \
+  (setField (setField acc "prev" (toString x)) "items" (push acc.items x)))
+uniq_seed = {items = []; prev = ""}
+uniq xs = get_items (fold uniq_step uniq_seed xs)
