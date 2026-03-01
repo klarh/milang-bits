@@ -1,0 +1,47 @@
+-- Test math library
+m = import "../math.mi"
+
+check :~ [console]
+check label got expected world = \
+  if (toString got == toString expected) \
+    (world.io.println ("PASS: " + label)) \
+    (world.io.println ("FAIL: " + label + "\n  got:      " + toString got + "\n  expected: " + toString expected))
+
+main world =
+  -- abs
+  check "abs positive" (m.abs 42) 42 world
+  check "abs negative" (m.abs (0 - 42)) 42 world
+  check "abs zero" (m.abs 0) 0 world
+  -- sign
+  check "sign positive" (m.sign 7) 1 world
+  check "sign negative" (m.sign (0 - 5)) (0 - 1) world
+  check "sign zero" (m.sign 0) 0 world
+  -- negate
+  check "negate" (m.negate 5) (0 - 5) world
+  -- min/max
+  check "min" (m.min 3 7) 3 world
+  check "max" (m.max 3 7) 7 world
+  -- clamp
+  check "clamp high" (m.clamp 0 10 15) 10 world
+  check "clamp low" (m.clamp 0 10 (0 - 5)) 0 world
+  check "clamp mid" (m.clamp 0 10 5) 5 world
+  -- is_even/odd
+  check "is_even" (m.is_even 4) 1 world
+  check "is_odd" (m.is_odd 7) 1 world
+  -- divides
+  check "divides yes" (m.divides 3 9) 1 world
+  check "divides no" (m.divides 3 10) 0 world
+  -- factorial
+  check "factorial 0" (m.factorial 0) 1 world
+  check "factorial 5" (m.factorial 5) 120 world
+  -- pow
+  check "pow 2^10" (m.pow 2 10) 1024 world
+  check "pow 3^0" (m.pow 3 0) 1 world
+  -- sum_range
+  check "sum_range 1..10" (m.sum_range 1 10) 55 world
+  -- product_range
+  check "product_range 1..5" (m.product_range 1 5) 120 world
+  -- min_list / max_list
+  check "min_list" (m.min_list [5, 2, 8, 1, 9]) 1 world
+  check "max_list" (m.max_list [5, 2, 8, 1, 9]) 9 world
+  0

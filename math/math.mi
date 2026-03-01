@@ -1,0 +1,29 @@
+-- math: numeric utilities for milang
+--
+-- Provides common math functions not in the prelude.
+-- Note: milang has `+`, `-`, `*`, `/`, `%`, `**` built in.
+
+-- Basics
+abs x = if (x < 0) (0 - x) (x)
+sign x = if (x > 0) (1) (if (x < 0) (0 - 1) (0))
+negate x = 0 - x
+min a b = if (a <= b) (a) (b)
+max a b = if (a >= b) (a) (b)
+clamp lo hi x = min hi (max lo x)
+
+-- Integer arithmetic
+is_even n = (n % 2) == 0
+is_odd n = (n % 2) /= 0
+divides d n = (n % d) == 0
+factorial n = fold (\acc x -> acc * x) 1 (range 1 (n + 1))
+pow base exp = fold (\acc x -> acc * base) 1 (range 0 exp)
+
+-- Aggregation over ranges
+sum_range a b = sum (range a (b + 1))
+product_range a b = product (range a (b + 1))
+
+-- List numeric utilities (uses unsafe_head: only call on non-empty lists)
+unsafe_head xs = xs ->
+  [x, ...rest] = x
+min_list xs = fold min (unsafe_head xs) xs
+max_list xs = fold max (unsafe_head xs) xs
