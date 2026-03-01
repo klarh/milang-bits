@@ -1,0 +1,47 @@
+-- Test basic argparse functionality
+ap = import "../argparse.mi"
+
+spec = [
+  ap.flag "v" "verbose" "increase verbosity",
+  ap.opt  "o" "output"  "output file" "a.out"
+]
+
+check :~ [console]
+check label got expected world = \
+  if (toString got == toString expected) \
+    (world.io.println ("PASS: " + label)) \
+    (world.io.println ("FAIL: " + label + "\n  got:      " + toString got + "\n  expected: " + toString expected))
+
+main world =
+  -- Test 1: flags and --opt=value and positionals
+  r1 = ap.parse spec ["-v", "--output=out.txt", "pos1", "pos2"]
+  check "flag+opt+pos verbose" r1.options.verbose 1 world
+  check "flag+opt+pos output" r1.options.output "out.txt" world
+  check "flag+opt+pos args" r1.args ["pos1", "pos2"] world
+  -- Test 2: long flag name
+  r2 = ap.parse spec ["--verbose", "file.mi"]
+  check "long flag verbose" r2.options.verbose 1 world
+  check "long flag output default" r2.options.output "a.out" world
+  check "long flag args" r2.args ["file.mi"] world
+  -- Test 3: empty argv gives defaults
+  r3 = ap.parse spec []
+  check "defaults verbose" r3.options.verbose 0 world
+  check "defaults output" r3.options.output "a.out" world
+  check "defaults args" r3.args [] world
+  -- Test 4: --opt value (next-token consumption)
+  r4 = ap.parse spec ["--output", "build/"]
+  check "next-token output" r4.options.output "build/" world
+  -- Test 5: --opt with no value gives error
+  r5 = ap.parse spec ["--output"]
+  check "missing value msg" r5.message "--output requires a value" world
+  -- Test 6: -o value (short opt, next token)
+  r6 = ap.parse spec ["-o", "short.txt"]
+  check "short opt output" r6.options.output "short.txt" world
+  -- Test 7: unknown flags become positional args
+  r7 = ap.parse spec ["--unknown", "-x", "file"]
+  check "unknown args" r7.args ["--unknown", "-x", "file"] world
+  -- Test 8: help text generation
+  h = ap.help_text "myapp" "a test app" spec
+  check "help contains name" (indexOf h "myapp") 0 world
+  check "help contains verbose" ((indexOf h "verbose") >= 0) 1 world
+  0

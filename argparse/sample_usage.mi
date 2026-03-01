@@ -1,0 +1,19 @@
+-- Example usage of the argparse library
+ap = import "argparse.mi"
+
+spec = [
+  ap.flag "v" "verbose" "increase verbosity",
+  ap.opt  "o" "output"  "output file" "a.out"
+]
+
+handle_ok result world = \
+  if (result.options.verbose == 1) \
+    (world.io.println "verbose mode on") \
+    (0)
+
+main world =
+  world.io.println (ap.help_text "myapp" "example app" spec)
+  world.io.println ""
+  result = ap.parse_world spec world
+  world.io.println (toString result)
+  0

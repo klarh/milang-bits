@@ -1,0 +1,94 @@
+-- argparse: command-line argument parsing for milang
+--
+-- Usage:
+--   ap = import "argparse.mi"
+--   spec = [ap.flag "v" "verbose" "increase verbosity",
+--           ap.opt  "o" "output"  "output file" "a.out"]
+--   result = ap.parse spec argv
+--   -- result is ParseOk {verbose = 0, output = "a.out"} [] on no args
+--   -- or ParseErr "message" on error
+
+-- Result ADT
+ParseResult = {ParseOk options args; ParseErr message}
+
+-- DSL builders
+flag short long help = {short = short; long = long; kind = "flag"; default = 0; help = help}
+opt short long help default = {short = short; long = long; kind = "opt"; default = default; help = help}
+
+-- Extend toString for ParseResult
+toString val = val ->
+  ParseOk = "Ok " + toString val.options + " " + toString val.args
+  ParseErr = "Error: " + val.message
+
+-- Lookup helpers (use filter+head to avoid recursion — recursive fns can't be imported)
+find_by_long specs name = head (filter (\s -> s.long == name) specs)
+find_by_short specs ch = head (filter (\s -> s.short == ch) specs)
+
+starts_with s prefix = (indexOf s prefix) == 0
+
+-- Build default options record from spec list
+apply_default acc s = setField acc s.long s.default
+build_defaults specs = fold apply_default ie specs
+
+-- Help text generation
+format_option s = "  -" + s.short + ", --" + s.long + "  " + s.help
+help_text name desc specs = name + " - " + desc + "\n\nOptions:\n" + (join "\n" (map format_option specs))
+
+-- State updaters (use setField to avoid record-literal closure bug in fold)
+set_opts acc v = setField acc "opts" v
+set_args acc v = setField acc "args" v
+set_pending acc v = setField acc "pending" v
+set_opt_val acc name val = set_pending (set_opts acc (setField acc.opts name val)) ""
+push_arg acc tok = set_args acc (push acc.args tok)
+
+-- Handle pending: consume token as value for pending opt
+apply_pending acc tok = set_opt_val acc acc.pending tok
+
+-- Handle --long=value
+apply_found_eq found val acc = found ->
+  Nothing = acc
+  Just = set_opt_val acc found.val.long val
+
+apply_long_eq acc tok specs = \
+  apply_found_eq \
+    (find_by_long specs (slice tok 2 (indexOf tok "="))) \
+    (slice tok ((indexOf tok "=") + 1) (len tok)) acc
+
+-- Handle --long (flag or set pending for opt)
+apply_long_noeq_found found tok acc = found ->
+  Nothing = push_arg acc tok
+  Just = if (found.val.kind == "opt") (set_pending acc found.val.long) (set_opt_val acc found.val.long 1)
+
+apply_long_noeq acc tok specs = \
+  apply_long_noeq_found (find_by_long specs (slice tok 2 (len tok))) tok acc
+
+apply_long acc tok specs = \
+  if ((indexOf tok "=") >= 0) (apply_long_eq acc tok specs) (apply_long_noeq acc tok specs)
+
+-- Handle -s (short flag or set pending for opt)
+apply_short_found found tok acc = found ->
+  Nothing = push_arg acc tok
+  Just = if (found.val.kind == "opt") (set_pending acc found.val.long) (set_opt_val acc found.val.long 1)
+
+apply_short acc tok specs = \
+  apply_short_found (find_by_short specs (slice tok 1 (len tok))) tok acc
+
+-- Token classifier for fold
+classify_token specs acc tok = \
+  if (acc.err /= "") (acc) \
+  (if (acc.pending /= "") (apply_pending acc tok) \
+  (if (starts_with tok "--") (apply_long acc tok specs) \
+  (if (starts_with tok "-") (apply_short acc tok specs) \
+  (push_arg acc tok))))
+
+-- Finalize: convert accumulator to ParseResult
+ie = {}
+finalize acc = \
+  if (acc.err /= "") (ParseErr acc.err) \
+  (if (acc.pending /= "") (ParseErr ("--" + acc.pending + " requires a value")) \
+  (ParseOk acc.opts acc.args))
+
+-- Public API
+make_init specs = {opts = build_defaults specs; args = []; pending = ""; err = ""}
+parse specs argv = finalize (fold (classify_token specs) (make_init specs) argv)
+parse_world specs world = parse specs (drop 1 world.argv)
