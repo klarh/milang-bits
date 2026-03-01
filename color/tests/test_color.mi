@@ -1,0 +1,50 @@
+-- Test color library
+c = import "../color.mi"
+
+check :~ [console]
+check label got expected world = \
+  if (toString got == toString expected) \
+    (world.io.println ("PASS: " + label)) \
+    (world.io.println ("FAIL: " + label + "\n  got:      " + toString got + "\n  expected: " + toString expected))
+
+esc code = "\x1b[" + toString code + "m"
+
+main world =
+  -- Styles
+  check "bold" (c.bold "hi") (esc 1 + "hi" + esc 22) world
+  check "dim" (c.dim "hi") (esc 2 + "hi" + esc 22) world
+  check "italic" (c.italic "hi") (esc 3 + "hi" + esc 23) world
+  check "underline" (c.underline "hi") (esc 4 + "hi" + esc 24) world
+  check "strikethrough" (c.strikethrough "hi") (esc 9 + "hi" + esc 29) world
+  check "inverse" (c.inverse "hi") (esc 7 + "hi" + esc 27) world
+  -- Foreground colors
+  check "red" (c.red "hi") (esc 31 + "hi" + esc 39) world
+  check "green" (c.green "hi") (esc 32 + "hi" + esc 39) world
+  check "blue" (c.blue "hi") (esc 34 + "hi" + esc 39) world
+  check "yellow" (c.yellow "hi") (esc 33 + "hi" + esc 39) world
+  check "cyan" (c.cyan "hi") (esc 36 + "hi" + esc 39) world
+  check "magenta" (c.magenta "hi") (esc 35 + "hi" + esc 39) world
+  check "black" (c.black "hi") (esc 30 + "hi" + esc 39) world
+  check "white" (c.white "hi") (esc 37 + "hi" + esc 39) world
+  -- Bright colors
+  check "bright_red" (c.bright_red "hi") (esc 91 + "hi" + esc 39) world
+  check "bright_green" (c.bright_green "hi") (esc 92 + "hi" + esc 39) world
+  -- Background colors
+  check "bg_red" (c.bg_red "hi") (esc 41 + "hi" + esc 49) world
+  check "bg_blue" (c.bg_blue "hi") (esc 44 + "hi" + esc 49) world
+  -- 256 colors
+  check "fg256" (c.fg256 196 "hi") ("\x1b[38;5;196m" + "hi" + esc 39) world
+  check "bg256" (c.bg256 21 "hi") ("\x1b[48;5;21m" + "hi" + esc 49) world
+  -- RGB colors
+  check "fg_rgb" (c.fg_rgb 255 0 128 "hi") ("\x1b[38;2;255;0;128m" + "hi" + esc 39) world
+  check "bg_rgb" (c.bg_rgb 0 255 0 "hi") ("\x1b[48;2;0;255;0m" + "hi" + esc 49) world
+  -- Composition
+  check "bold+red" (c.bold (c.red "hi")) (esc 1 + esc 31 + "hi" + esc 39 + esc 22) world
+  -- Strip
+  check "strip" (c.strip (c.bold (c.red "hello"))) "hello" world
+  check "strip plain" (c.strip "no codes") "no codes" world
+  -- Reset
+  check "reset" (c.reset "hi") (esc 0 + "hi" + esc 0) world
+  -- Visual demo
+  world.io.println (c.bold (c.red "ERROR") + " " + c.green "OK" + " " + c.dim (c.yellow "warn"))
+  0

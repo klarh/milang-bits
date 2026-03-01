@@ -1,0 +1,67 @@
+-- color: ANSI terminal colors and styling
+--
+-- Provides functions to wrap text in ANSI escape codes for colored
+-- and styled terminal output. All functions are pure (produce strings).
+
+-- Escape sequence helpers
+esc code = "\x1b[" + toString code + "m"
+wrap start end text = esc start + text + esc end
+
+-- Styles
+bold text = wrap 1 22 text
+dim text = wrap 2 22 text
+italic text = wrap 3 23 text
+underline text = wrap 4 24 text
+strikethrough text = wrap 9 29 text
+inverse text = wrap 7 27 text
+
+-- Standard foreground colors
+black text = wrap 30 39 text
+red text = wrap 31 39 text
+green text = wrap 32 39 text
+yellow text = wrap 33 39 text
+blue text = wrap 34 39 text
+magenta text = wrap 35 39 text
+cyan text = wrap 36 39 text
+white text = wrap 37 39 text
+
+-- Bright foreground colors
+bright_black text = wrap 90 39 text
+bright_red text = wrap 91 39 text
+bright_green text = wrap 92 39 text
+bright_yellow text = wrap 93 39 text
+bright_blue text = wrap 94 39 text
+bright_magenta text = wrap 95 39 text
+bright_cyan text = wrap 96 39 text
+bright_white text = wrap 97 39 text
+
+-- Standard background colors
+bg_black text = wrap 40 49 text
+bg_red text = wrap 41 49 text
+bg_green text = wrap 42 49 text
+bg_yellow text = wrap 43 49 text
+bg_blue text = wrap 44 49 text
+bg_magenta text = wrap 45 49 text
+bg_cyan text = wrap 46 49 text
+bg_white text = wrap 47 49 text
+
+-- 256-color support
+fg256 n text = "\x1b[38;5;" + toString n + "m" + text + esc 39
+bg256 n text = "\x1b[48;5;" + toString n + "m" + text + esc 49
+
+-- 24-bit RGB color support
+fg_rgb r g b text = "\x1b[38;2;" + toString r + ";" + toString g + ";" + toString b + "m" + text + esc 39
+bg_rgb r g b text = "\x1b[48;2;" + toString r + ";" + toString g + ";" + toString b + "m" + text + esc 49
+
+-- Reset all styling
+reset text = wrap 0 0 text
+
+-- Strip ANSI codes (simple: removes \x1b[...m sequences)
+strip_step acc ch = \
+  if (acc.skip == 1) \
+    (if (ch == "m") (setField acc "skip" 0) (acc)) \
+    (if (ch == "\x1b") (setField acc "skip" 1) \
+    (setField acc "out" (acc.out + ch)))
+strip_seed = {out = ""; skip = 0}
+get_out r = r.out
+strip text = get_out (fold strip_step strip_seed (split text ""))
