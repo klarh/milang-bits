@@ -1,0 +1,42 @@
+-- Test fileio library
+f :~ [fs.read, fs.write]
+f = import "../fileio.mi"
+
+check :~ [console]
+check label got expected world = \
+  if (toString got == toString expected) \
+    (world.io.println ("PASS: " + label)) \
+    (world.io.println ("FAIL: " + label + "\n  got:      " + toString got + "\n  expected: " + toString expected))
+
+tmp1 = "/tmp/milang_fileio_test1.txt"
+tmp2 = "/tmp/milang_fileio_test2.txt"
+
+main :~ [console, fs.read, fs.write]
+main world =
+  -- write_file and read_file
+  f.write_file tmp1 "hello\nworld\nfoo" world
+  check "read_file" (f.read_file tmp1 world) "hello\nworld\nfoo" world
+  -- read_file_maybe success
+  check "read_file_maybe ok" (f.read_file_maybe tmp1 world) (Just "hello\nworld\nfoo") world
+  -- read_file_maybe failure
+  check "read_file_maybe err" (f.read_file_maybe "/tmp/no_such_xyzzy.txt" world) Nothing world
+  -- read_file on missing file returns empty
+  check "read_file missing" (f.read_file "/tmp/no_such_xyzzy.txt" world) "" world
+  -- exists
+  check "exists yes" (f.exists tmp1 world) 1 world
+  check "exists no" (f.exists "/tmp/no_such_xyzzy.txt" world) 0 world
+  -- read_lines
+  check "read_lines" (f.read_lines tmp1 world) ["hello", "world", "foo"] world
+  -- append_file
+  f.append_file tmp1 "\nbar" world
+  check "append" (f.read_file tmp1 world) "hello\nworld\nfoo\nbar" world
+  -- write_lines
+  f.write_lines tmp2 ["a", "b", "c"] world
+  check "write_lines" (f.read_file tmp2 world) "a\nb\nc" world
+  -- remove_file
+  f.remove_file tmp1 world
+  check "remove" (f.exists tmp1 world) 0 world
+  -- cleanup
+  f.remove_file tmp2 world
+  check "cleanup" (f.exists tmp2 world) 0 world
+  0

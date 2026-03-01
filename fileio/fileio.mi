@@ -1,0 +1,48 @@
+-- fileio: convenience wrappers for world.fs
+--
+-- Provides read_file, read_file_maybe, write_file, append_file,
+-- remove_file, exists, read_lines, write_lines.
+-- All effectful functions take `world` as last argument.
+
+-- Extract value from Ok result, return default on Err
+unwrap_or result default_val = result ->
+  Ok val = val
+  Err _ = default_val
+
+-- Read file contents, return empty string on error
+read_file :~ [fs.read]
+read_file path world = unwrap_or (world.fs.read.file path) ""
+
+-- Read file contents, return Maybe Str
+read_file_maybe :~ [fs.read]
+read_file_maybe path world = (world.fs.read.file path) ->
+  Ok val = Just val
+  Err _ = Nothing
+
+-- Check if file exists (returns 0 or 1)
+exists :~ [fs.read]
+exists path world = world.fs.read.exists path
+
+-- Write string to file (overwrites)
+write_file :~ [fs.write]
+write_file path content world = world.fs.write.file path content
+
+-- Append string to file
+append_file :~ [fs.write]
+append_file path content world = world.fs.write.append path content
+
+-- Remove file
+remove_file :~ [fs.write]
+remove_file path world = world.fs.write.remove path
+
+-- Read file as list of lines
+read_lines :~ [fs.read]
+read_lines path world = split (read_file path world) "\n"
+
+-- Join strings with newlines
+jl_step acc x = if (acc == "") (toString x) (acc + "\n" + toString x)
+join_lines xs = fold jl_step "" xs
+
+-- Write list of strings as lines to file
+write_lines :~ [fs.write]
+write_lines path xs world = world.fs.write.file path (join_lines xs)
