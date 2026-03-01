@@ -1,0 +1,57 @@
+-- path: file path manipulation utilities for milang
+--
+-- Provides basename, dirname, extension, stem, join_path, and more.
+-- All functions are pure string manipulation (no filesystem access).
+
+-- Internal helpers for Maybe unwrapping
+dirname_unwrap m = m ->
+  Nothing = ""
+  Just = join "/" m.val
+
+basename_unwrap m = m ->
+  Nothing = ""
+  Just = m.val
+
+stem_unwrap bn m = m ->
+  Nothing = bn
+  Just = join "." m.val
+
+-- basename: last component of a path
+basename p = basename_unwrap (last (split p "/"))
+
+-- dirname: directory part (everything before last component)
+dirname p = dirname_unwrap (init (split p "/"))
+
+-- extension: file extension including dot, or "" if none
+extension p = if ((indexOf (basename p) ".") < 0) ("") \
+  ("." + basename_unwrap (last (split (basename p) ".")))
+
+-- stem: basename without its extension
+stem p = if ((indexOf (basename p) ".") < 0) (basename p) \
+  (stem_unwrap (basename p) (init (split (basename p) ".")))
+
+-- join_path: join two path segments with /
+join_path a b = if (a == "") (b) (a + "/" + b)
+
+-- with_extension: replace or set extension
+with_extension p ext = if (dirname p == "") (stem p + ext) (dirname p + "/" + stem p + ext)
+
+-- has_extension: does the path have a file extension?
+has_extension p = (indexOf (basename p) ".") >= 0
+
+-- split_ext: returns [stem, extension] pair
+split_ext p = [stem p, extension p]
+
+-- components: split path into non-empty components
+components p = filter (\s -> len s > 0) (split p "/")
+
+-- is_absolute / is_relative
+is_absolute p = startsWith p "/"
+is_relative p = if (startsWith p "/") (0) (1)
+
+-- normalize: remove trailing slashes (except root "/")
+normalize p = if (p == "/") ("/") \
+  (if (endsWith p "/") (slice p 0 (len p - 1)) (p))
+
+-- add_trailing_slash
+add_slash p = if (endsWith p "/") (p) (p + "/")

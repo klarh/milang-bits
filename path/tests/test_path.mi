@@ -1,0 +1,50 @@
+-- Test path library
+p = import "../path.mi"
+
+check :~ [console]
+check label got expected world = \
+  if (toString got == toString expected) \
+    (world.io.println ("PASS: " + label)) \
+    (world.io.println ("FAIL: " + label + "\n  got:      " + toString got + "\n  expected: " + toString expected))
+
+main world =
+  -- basename
+  check "basename abs" (p.basename "/home/user/file.txt") "file.txt" world
+  check "basename rel" (p.basename "file.txt") "file.txt" world
+  check "basename dir" (p.basename "/home/user/") "" world
+  -- dirname
+  check "dirname abs" (p.dirname "/home/user/file.txt") "/home/user" world
+  check "dirname rel" (p.dirname "dir/file.txt") "dir" world
+  check "dirname bare" (p.dirname "file.txt") "" world
+  -- extension
+  check "ext .txt" (p.extension "/home/file.txt") ".txt" world
+  check "ext .gz" (p.extension "file.tar.gz") ".gz" world
+  check "ext none" (p.extension "Makefile") "" world
+  -- stem
+  check "stem .txt" (p.stem "/home/file.txt") "file" world
+  check "stem .tar.gz" (p.stem "file.tar.gz") "file.tar" world
+  check "stem none" (p.stem "Makefile") "Makefile" world
+  -- join_path
+  check "join" (p.join_path "/home" "user") "/home/user" world
+  check "join empty" (p.join_path "" "file") "file" world
+  -- with_extension
+  check "with_ext abs" (p.with_extension "/home/file.txt" ".md") "/home/file.md" world
+  check "with_ext rel" (p.with_extension "file.txt" ".md") "file.md" world
+  check "with_ext multi" (p.with_extension "file.tar.gz" ".zip") "file.tar.zip" world
+  -- has_extension
+  check "has_ext yes" (p.has_extension "file.txt") 1 world
+  check "has_ext no" (p.has_extension "Makefile") 0 world
+  -- components
+  check "components" (p.components "/home/user/file.txt") ["home", "user", "file.txt"] world
+  -- is_absolute / is_relative
+  check "is_absolute yes" (p.is_absolute "/home") 1 world
+  check "is_absolute no" (p.is_absolute "relative") 0 world
+  check "is_relative yes" (p.is_relative "relative") 1 world
+  -- normalize
+  check "normalize trail" (p.normalize "/home/user/") "/home/user" world
+  check "normalize root" (p.normalize "/") "/" world
+  check "normalize clean" (p.normalize "/home") "/home" world
+  -- add_slash
+  check "add_slash" (p.add_slash "/home") "/home/" world
+  check "add_slash noop" (p.add_slash "/home/") "/home/" world
+  0
