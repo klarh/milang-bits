@@ -1,0 +1,62 @@
+-- Test graph library
+gr = import "../graph.mi"
+
+check :~ [console]
+check label got expected world = \
+  if (toString got == toString expected) \
+    (world.io.println ("PASS: " + label)) \
+    (world.io.println ("FAIL: " + label + "\n  got:      " + toString got + "\n  expected: " + toString expected))
+
+-- Build test graph: a -> b, a -> c, b -> d
+g = gr.add_edge (gr.add_edge (gr.add_edge \
+  (gr.add_node (gr.add_node (gr.add_node (gr.add_node gr.empty "a") "b") "c") "d") \
+  "a" "b") "a" "c") "b" "d"
+
+main world =
+  -- Construction
+  check "node_count" (gr.node_count g) 4 world
+  check "edge_count" (gr.edge_count g) 3 world
+  -- has_edge
+  check "has_edge yes" (gr.has_edge g "a" "b") 1 world
+  check "has_edge no" (gr.has_edge g "b" "a") 0 world
+  check "has_edge yes2" (gr.has_edge g "b" "d") 1 world
+  -- has_node
+  check "has_node yes" (gr.has_node g "a") 1 world
+  check "has_node no" (gr.has_node g "z") 0 world
+  -- neighbors
+  check "neighbors a" (gr.neighbors g "a") ["b", "c"] world
+  check "neighbors b" (gr.neighbors g "b") ["d"] world
+  check "neighbors d" (gr.neighbors g "d") [] world
+  -- in_neighbors
+  check "in_neighbors b" (gr.in_neighbors g "b") ["a"] world
+  check "in_neighbors d" (gr.in_neighbors g "d") ["b"] world
+  check "in_neighbors a" (gr.in_neighbors g "a") [] world
+  -- degrees
+  check "out_degree a" (gr.out_degree g "a") 2 world
+  check "in_degree d" (gr.in_degree g "d") 1 world
+  check "degree b" (gr.degree g "b") 2 world
+  -- sources and sinks
+  check "sources" (gr.sources g) ["a"] world
+  check "sinks" (gr.sinks g) ["c", "d"] world
+  -- is_empty
+  check "is_empty no" (gr.is_empty g) 0 world
+  check "is_empty yes" (gr.is_empty gr.empty) 1 world
+  -- edges_from
+  check "edges_from a count" (len (gr.edges_from g "a")) 2 world
+  check "edges_to d count" (len (gr.edges_to g "d")) 1 world
+  -- undirected
+  gu = gr.add_edge_u (gr.add_node (gr.add_node gr.empty "x") "y") "x" "y"
+  check "undirected xy" (gr.has_edge gu "x" "y") 1 world
+  check "undirected yx" (gr.has_edge gu "y" "x") 1 world
+  check "undirected degree" (gr.degree gu "x") 2 world
+  -- from_edges
+  g2 = gr.from_edges ["p", "q", "r"] [["p", "q"], ["q", "r"]]
+  check "from_edges nodes" (gr.node_count g2) 3 world
+  check "from_edges edges" (gr.edge_count g2) 2 world
+  check "from_edges has" (gr.has_edge g2 "p" "q") 1 world
+  -- remove_edges_from
+  g3 = gr.remove_edges_from g "a"
+  check "remove_from count" (gr.edge_count g3) 1 world
+  check "remove_from check" (gr.has_edge g3 "a" "b") 0 world
+  check "remove_from kept" (gr.has_edge g3 "b" "d") 1 world
+  0

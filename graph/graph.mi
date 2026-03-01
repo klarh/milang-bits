@@ -1,0 +1,96 @@
+-- graph: directed graph data structure
+--
+-- Edge-list representation with string-encoded adjacency for fast lookup.
+-- Provides construction, querying, and basic analysis.
+-- Note: traversal algorithms (BFS/DFS/topo sort) require recursion
+-- and are not yet supported due to milang module import constraints.
+
+-- Create an empty graph
+empty = {nodes = []; edges = []; adj = "|"}
+
+-- Add a node
+add_node g n = setField g "nodes" (push g.nodes n)
+
+-- Helper to build edge record
+make_edge from to = {from = from; to = to}
+
+-- Add a directed edge
+add_edge_inner g edge_rec adj_str = \
+  setField (setField g "edges" (push g.edges edge_rec)) "adj" adj_str
+add_edge g from to = \
+  add_edge_inner g (make_edge from to) \
+    (g.adj + toString from + ">" + toString to + "|")
+
+-- Add an undirected edge (both directions)
+add_edge_u g a b = add_edge (add_edge g a b) b a
+
+-- Check if a directed edge exists
+has_edge g from to = \
+  indexOf g.adj ("|" + toString from + ">" + toString to + "|") >= 0
+
+-- Get successor nodes (outgoing neighbors)
+neighbors g n = \
+  map (\e -> e.to) (filter (\e -> toString e.from == toString n) g.edges)
+
+-- Get predecessor nodes (incoming neighbors)
+in_neighbors g n = \
+  map (\e -> e.from) (filter (\e -> toString e.to == toString n) g.edges)
+
+-- Out-degree (number of outgoing edges)
+out_degree g n = len (neighbors g n)
+
+-- In-degree (number of incoming edges)
+in_degree g n = len (in_neighbors g n)
+
+-- Total degree (in + out)
+degree g n = (in_degree g n) + (out_degree g n)
+
+-- Number of nodes
+node_count g = len g.nodes
+
+-- Number of edges
+edge_count g = len g.edges
+
+-- Check if node exists
+has_node g n = any (\x -> toString x == toString n) g.nodes
+
+-- Get all edges from a node
+edges_from g n = filter (\e -> toString e.from == toString n) g.edges
+
+-- Get all edges to a node
+edges_to g n = filter (\e -> toString e.to == toString n) g.edges
+
+-- Remove all edges from a node (returns new graph)
+rebuild_adj_step acc e = acc + toString e.from + ">" + toString e.to + "|"
+rebuild_adj edges_list = fold rebuild_adj_step "|" edges_list
+remove_edges_from g n = \
+  setField (setField g \
+    "edges" (filter (\e -> toString e.from /= toString n) g.edges)) \
+    "adj" (rebuild_adj (filter (\e -> toString e.from /= toString n) g.edges))
+
+-- Remove all edges to a node
+remove_edges_to g n = \
+  setField (setField g \
+    "edges" (filter (\e -> toString e.to /= toString n) g.edges)) \
+    "adj" (rebuild_adj (filter (\e -> toString e.to /= toString n) g.edges))
+
+-- Get source nodes (nodes with in-degree 0)
+sources g = filter (\n -> in_degree g n == 0) g.nodes
+
+-- Get sink nodes (nodes with out-degree 0)
+sinks g = filter (\n -> out_degree g n == 0) g.nodes
+
+-- Check if graph has no edges
+is_empty g = len g.edges == 0
+
+-- Build graph from node list and edge pair list
+-- from_edges ["a", "b", "c"] [["a", "b"], ["b", "c"]]
+fe_node_step acc n = add_node acc n
+fe_edge_step acc pair = add_edge acc (head_of pair) (second_of pair)
+head_of xs = xs ->
+  [x, ...rest] = x
+second_of xs = xs ->
+  [x, y, ...rest] = y
+
+from_edges nodes edge_pairs = \
+  fold fe_edge_step (fold fe_node_step empty nodes) edge_pairs
