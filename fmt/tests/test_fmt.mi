@@ -1,0 +1,37 @@
+-- Test fmt library
+f = import "../fmt.mi"
+
+check :~ [console]
+check label got expected world = \
+  if (toString got == toString expected) \
+    (world.io.println ("PASS: " + label)) \
+    (world.io.println ("FAIL: " + label + "\n  got:      " + toString got + "\n  expected: " + toString expected))
+
+main world =
+  -- interpolate
+  check "interp basic" (f.interpolate "Hello {}, {}!" ["world", 30]) "Hello world, 30!" world
+  check "interp none" (f.interpolate "no placeholders" []) "no placeholders" world
+  check "interp multi" (f.interpolate "{} + {} = {}" [1, 2, 3]) "1 + 2 = 3" world
+  -- padding
+  check "pad_left" (f.pad_left "42" 5 "0") "00042" world
+  check "pad_left noop" (f.pad_left "hello" 3 "0") "hello" world
+  check "pad_right" (f.pad_right "hi" 5 ".") "hi..." world
+  check "center" (f.center "x" 5 "-") "--x--" world
+  check "pad_int" (f.pad_int 7 3) "007" world
+  -- replace_first
+  check "replace_first" (f.replace_first "ab" "X" "ababab") "Xabab" world
+  check "replace_first miss" (f.replace_first "zz" "X" "abc") "abc" world
+  -- join_with
+  check "join_with" (f.join_with ", " [1, 2, 3]) "1, 2, 3" world
+  -- surround / quote / parens / brackets / braces
+  check "quote" (f.quote "hello") "\"hello\"" world
+  check "parens" (f.parens "x") "(x)" world
+  check "brackets" (f.brackets "x") "[x]" world
+  check "braces" (f.braces "x") "{x}" world
+  check "surround" (f.surround "<" ">" "tag") "<tag>" world
+  -- str_repeat
+  check "str_repeat" (f.str_repeat "ab" 3) "ababab" world
+  check "str_repeat 0" (f.str_repeat "x" 0) "" world
+  -- indent
+  check "indent" (f.indent 2 "a\nb") "  a\n  b" world
+  0

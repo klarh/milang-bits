@@ -1,0 +1,39 @@
+-- fmt: string formatting utilities for milang
+--
+-- Usage:
+--   f = import "fmt.mi"
+--   f.interpolate "Hello {}, you are {}!" ["world", 30]
+--   -- "Hello world, you are 30!"
+
+-- Repeat a string n times
+str_repeat s n = fold (\acc x -> acc + s) "" (range 0 n)
+
+-- Padding
+pad_left s width ch = if ((len s) >= width) (s) (str_repeat ch (width - (len s)) + s)
+pad_right s width ch = if ((len s) >= width) (s) (s + str_repeat ch (width - (len s)))
+center s width ch = if ((len s) >= width) (s) \
+  (str_repeat ch ((width - (len s)) / 2) + s + str_repeat ch (width - (len s) - ((width - (len s)) / 2)))
+
+-- Pad integer with leading zeros
+pad_int n width = pad_left (toString n) width "0"
+
+-- Replace first occurrence only
+replace_first old new s = if ((indexOf s old) < 0) (s) \
+  (slice s 0 (indexOf s old) + new + slice s ((indexOf s old) + len old) (len s))
+
+-- Interpolate: replace {} placeholders with values from a list (left to right)
+interp_step acc val = replace_first "{}" (toString val) acc
+interpolate template vals = fold interp_step template vals
+
+-- Join items with separator, applying toString to each
+join_with sep xs = join sep (map toString xs)
+
+-- Surround a string with delimiters
+surround left right s = left + s + right
+quote s = surround "\"" "\"" s
+parens s = surround "(" ")" s
+brackets s = surround "[" "]" s
+braces s = surround "{" "}" s
+
+-- Indent each line by n spaces
+indent n s = join "\n" (map (\line -> str_repeat " " n + line) (lines s))
