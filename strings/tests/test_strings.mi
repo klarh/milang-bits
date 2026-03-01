@@ -1,0 +1,52 @@
+-- Test strings library
+s = import "../strings.mi"
+
+check :~ [console]
+check label got expected world = \
+  if (toString got == toString expected) \
+    (world.io.println ("PASS: " + label)) \
+    (world.io.println ("FAIL: " + label + "\n  got:      " + toString got + "\n  expected: " + toString expected))
+
+main world =
+  -- str_repeat
+  check "repeat 3" (s.str_repeat "ab" 3) "ababab" world
+  check "repeat 0" (s.str_repeat "x" 0) "" world
+  -- padding
+  check "pad_left" (s.pad_left "42" 5 "0") "00042" world
+  check "pad_right" (s.pad_right "hi" 5 ".") "hi..." world
+  check "center" (s.center "x" 5 "-") "--x--" world
+  check "pad no-op" (s.pad_left "hello" 3 "0") "hello" world
+  -- count
+  check "count 2" (s.count "abcabc" "abc") 2 world
+  check "count 0" (s.count "hello" "xyz") 0 world
+  -- predicates
+  check "is_empty true" (s.is_empty "") 1 world
+  check "is_empty false" (s.is_empty "a") 0 world
+  check "is_blank true" (s.is_blank "  \t ") 1 world
+  check "is_blank false" (s.is_blank " a ") 0 world
+  -- char classification
+  check "is_digit y" (s.is_digit "5") 1 world
+  check "is_digit n" (s.is_digit "a") 0 world
+  check "is_upper y" (s.is_upper "Z") 1 world
+  check "is_lower y" (s.is_lower "z") 1 world
+  check "is_alpha y" (s.is_alpha "A") 1 world
+  check "is_alnum y" (s.is_alnum "3") 1 world
+  check "is_space y" (s.is_space " ") 1 world
+  -- string predicates
+  check "all_digits y" (s.all_digits "12345") 1 world
+  check "all_digits n" (s.all_digits "123a5") 0 world
+  check "all_alpha y" (s.all_alpha "abcXYZ") 1 world
+  -- chars
+  check "chars" (s.chars "abc") ["a", "b", "c"] world
+  -- reverse
+  check "reverse" (s.str_reverse "hello") "olleh" world
+  -- take/drop
+  check "take" (s.str_take 3 "hello") "hel" world
+  check "drop" (s.str_drop 3 "hello") "lo" world
+  -- capitalize / title_case
+  check "capitalize" (s.capitalize "hello world") "Hello world" world
+  check "title_case" (s.title_case "hello cruel world") "Hello Cruel World" world
+  -- case conversion
+  check "snake_to_camel" (s.snake_to_camel "my_var_name") "myVarName" world
+  check "camel_to_snake" (s.camel_to_snake "myVarName") "my_var_name" world
+  0

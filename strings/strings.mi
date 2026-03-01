@@ -1,0 +1,60 @@
+-- strings: extended string utilities for milang
+--
+-- Complements the prelude's built-in string functions (split, trim,
+-- toUpper, toLower, replace, indexOf, slice, charAt, startsWith,
+-- endsWith, words, lines, unwords, unlines).
+
+-- repeat a string n times
+str_repeat s n = fold (\acc x -> acc + s) "" (range 0 n)
+
+-- pad left/right/center to width with padding string
+pad_left s width ch = if ((len s) >= width) (s) (str_repeat ch (width - (len s)) + s)
+pad_right s width ch = if ((len s) >= width) (s) (s + str_repeat ch (width - (len s)))
+center s width ch = if ((len s) >= width) (s) \
+  (str_repeat ch ((width - (len s)) / 2) + s + str_repeat ch (width - (len s) - ((width - (len s)) / 2)))
+
+-- count occurrences of substring
+count s sub = if ((len sub) == 0) (0) (len (split s sub) - 1)
+
+-- predicates
+is_empty s = (len s) == 0
+is_blank s = (len (trim s)) == 0
+
+-- Character classification (single-char strings, lexicographic comparison)
+is_digit ch = if ((len ch) /= 1) (0) (if (ch >= "0") (if (ch <= "9") (1) (0)) (0))
+is_upper ch = if ((len ch) /= 1) (0) (if (ch >= "A") (if (ch <= "Z") (1) (0)) (0))
+is_lower ch = if ((len ch) /= 1) (0) (if (ch >= "a") (if (ch <= "z") (1) (0)) (0))
+is_alpha ch = if (is_upper ch) (1) (is_lower ch)
+is_alnum ch = if (is_alpha ch) (1) (is_digit ch)
+is_space ch = if (ch == " ") (1) (if (ch == "\t") (1) (if (ch == "\n") (1) (0)))
+
+-- Convert string to list of single-char strings
+chars s = map (\i -> slice s i (i + 1)) (range 0 (len s))
+
+-- String predicates (all chars satisfy classifier)
+all_digits s = if (is_empty s) (0) (all is_digit (chars s))
+all_alpha s = if (is_empty s) (0) (all is_alpha (chars s))
+all_alnum s = if (is_empty s) (0) (all is_alnum (chars s))
+
+-- Reverse a string
+str_reverse s = fold (\acc c -> c + acc) "" (chars s)
+
+-- Take/drop for strings
+str_take n s = slice s 0 n
+str_drop n s = slice s n (len s)
+
+-- Capitalize first letter
+capitalize s = if (is_empty s) ("") (toUpper (str_take 1 s) + str_drop 1 s)
+
+-- Title case (capitalize each word)
+title_case s = unwords (map capitalize (words s))
+
+-- snake_case to camelCase
+snake_to_camel s = fold (\acc w -> if (acc == "") (w) (acc + capitalize w)) "" (split s "_")
+
+-- camelCase to snake_case
+camel_step acc ch = \
+  if (is_upper ch) \
+    (if (acc == "") (toLower ch) (acc + "_" + toLower ch)) \
+    (acc + ch)
+camel_to_snake s = fold camel_step "" (chars s)
