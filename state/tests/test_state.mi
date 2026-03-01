@@ -1,0 +1,58 @@
+-- Test state machine library
+sm = import "../state.mi"
+
+check :~ [console]
+check label got expected world = \
+  if (toString got == toString expected) \
+    (world.io.println ("PASS: " + label)) \
+    (world.io.println ("FAIL: " + label + "\n  got:      " + toString got + "\n  expected: " + toString expected))
+
+-- Define a traffic light machine
+light = sm.machine "red" [ \
+  sm.transition "red" "next" "green", \
+  sm.transition "green" "next" "yellow", \
+  sm.transition "yellow" "next" "red" \
+]
+
+-- Define a door machine
+door = sm.machine "closed" [ \
+  sm.transition "closed" "open" "opened", \
+  sm.transition "opened" "close" "closed", \
+  sm.transition "closed" "lock" "locked", \
+  sm.transition "locked" "unlock" "closed" \
+]
+
+main world =
+  -- current
+  check "initial state" (sm.current light) "red" world
+  -- step
+  check "step once" (sm.current (sm.step light "next")) "green" world
+  -- step invalid (stays same)
+  check "step invalid" (sm.current (sm.step light "stop")) "red" world
+  -- run sequence
+  check "run 3 steps" (sm.current (sm.run light ["next", "next", "next"])) "red" world
+  check "run 2 steps" (sm.current (sm.run light ["next", "next"])) "yellow" world
+  check "run 1 step" (sm.current (sm.run light ["next"])) "green" world
+  -- in_state
+  check "in_state yes" (sm.in_state light "red") 1 world
+  check "in_state no" (sm.in_state light "green") 0 world
+  -- can_handle
+  check "can_handle yes" (sm.can_handle light "next") 1 world
+  check "can_handle no" (sm.can_handle light "stop") 0 world
+  -- valid_events
+  check "valid_events red" (sm.valid_events light) ["next"] world
+  -- reachable
+  check "reachable red" (sm.reachable light) ["green"] world
+  -- door machine
+  check "door initial" (sm.current door) "closed" world
+  check "door open" (sm.current (sm.step door "open")) "opened" world
+  check "door lock" (sm.current (sm.step door "lock")) "locked" world
+  check "door sequence" (sm.current (sm.run door ["open", "close", "lock", "unlock"])) "closed" world
+  -- door valid events
+  check "door events" (sm.valid_events door) ["open", "lock"] world
+  check "door reachable" (sm.reachable door) ["opened", "locked"] world
+  -- skip invalid events in run
+  check "skip invalid" (sm.current (sm.run door ["open", "lock", "close"])) "closed" world
+  -- run with all invalid
+  check "all invalid" (sm.current (sm.run door ["lock", "unlock"])) "closed" world
+  0

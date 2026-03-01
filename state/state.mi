@@ -1,0 +1,71 @@
+-- state: State Machine DSL
+--
+-- Define state machines with typed states and events, run transitions,
+-- and query valid events. All pure (:~ []).
+--
+-- Usage:
+--   m = machine "idle" [transition "idle" "start" "running", ...]
+--   m2 = step m "start"    -- returns machine with new state
+--   m3 = run m ["start", "pause", "resume"]  -- apply event sequence
+
+-- Create a transition rule
+transition from event to = {from = from; to = to; event = event}
+
+-- Build string-encoded lookup table from rules
+-- Format: |from:event:to|from:event:to|...
+bt_step acc r = acc + toString r.from + ":" + toString r.event + ":" + toString r.to + "|"
+build_table rules = fold bt_step "|" rules
+
+-- Create a new machine with initial state and transition rules
+machine initial_state rules = {state = initial_state; rules = rules; table = build_table rules}
+
+-- String-based rule lookup (avoids nested fold)
+lookup_key state event = "|" + state + ":" + event + ":"
+find_to_start tbl key = (indexOf tbl key) + (len key)
+find_to_end tbl start = indexOf (slice tbl start (len tbl)) "|"
+
+lookup_rule tbl state event = \
+  if (indexOf tbl (lookup_key state event) < 0) ("") \
+  (slice tbl \
+    (find_to_start tbl (lookup_key state event)) \
+    ((find_to_start tbl (lookup_key state event)) + \
+     (find_to_end tbl (find_to_start tbl (lookup_key state event)))))
+
+-- Step: apply event, return new state string (or same if invalid)
+step_state tbl acc event = \
+  if (lookup_rule tbl acc event == "") (acc) (lookup_rule tbl acc event)
+
+-- Step: apply event to machine, return updated machine
+step m event = setField m "state" (step_state m.table m.state event)
+
+-- Run: apply sequence of events (invalid events are skipped)
+-- Uses string-only fold to avoid nested-fold bug
+run_state tbl initial events = fold (step_state tbl) initial events
+run m events = setField m "state" (run_state m.table m.state events)
+
+-- Get current state
+current m = m.state
+
+-- Check if machine is in a given state
+in_state m s = toString m.state == toString s
+
+-- Check if event is valid from current state
+can_handle m event = lookup_rule m.table m.state event /= ""
+
+-- List all valid events from current state
+ve_step state acc rule = \
+  if (toString rule.from == toString state) \
+    (setField acc "events" (push acc.events rule.event)) \
+    (acc)
+ve_seed = {events = []}
+get_events r = r.events
+valid_events m = get_events (fold (ve_step m.state) ve_seed m.rules)
+
+-- List all reachable states from current state (one step)
+rs_step state acc rule = \
+  if (toString rule.from == toString state) \
+    (setField acc "states" (push acc.states rule.to)) \
+    (acc)
+rs_seed = {states = []}
+get_states r = r.states
+reachable m = get_states (fold (rs_step m.state) rs_seed m.rules)
