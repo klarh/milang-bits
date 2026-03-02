@@ -1,0 +1,67 @@
+-- Test the testing library
+-- NOTE: import name must NOT be "t" (milang compiler bug: "t" collides
+-- with an internal symbol and causes "unbound variable" for if-using fns)
+te = import "../testing.mi"
+
+check :~ [console]
+check label got expected world = \
+  if (toString got == toString expected) \
+    (world.io.println ("PASS: " + label)) \
+    (world.io.println ("FAIL: " + label + "\n  got:      " + toString got + "\n  expected: " + toString expected))
+
+main world =
+  -- Test eq
+  check "eq pass" (te.eq 42 42) "PASS" world
+  check "eq fail" (startsWith (te.eq 1 2) "FAIL:") 1 world
+  check "eq strings" (te.eq "abc" "abc") "PASS" world
+  check "eq strings fail" (startsWith (te.eq "a" "b") "FAIL:") 1 world
+
+  -- Test neq
+  check "neq pass" (te.neq "a" "b") "PASS" world
+  check "neq fail" (startsWith (te.neq 1 1) "FAIL:") 1 world
+
+  -- Test ok/not_ok
+  check "ok true" (te.ok 1) "PASS" world
+  check "ok false" (startsWith (te.ok 0) "FAIL:") 1 world
+  check "not_ok 0" (te.not_ok 0) "PASS" world
+  check "not_ok 1" (startsWith (te.not_ok 1) "FAIL:") 1 world
+
+  -- Test comparisons
+  check "gt pass" (te.gt 5 3) "PASS" world
+  check "gt fail" (startsWith (te.gt 3 5) "FAIL:") 1 world
+  check "lt pass" (te.lt 3 5) "PASS" world
+  check "lt fail" (startsWith (te.lt 5 3) "FAIL:") 1 world
+  check "gte eq" (te.gte 5 5) "PASS" world
+  check "gte gt" (te.gte 6 5) "PASS" world
+  check "gte fail" (startsWith (te.gte 4 5) "FAIL:") 1 world
+  check "lte eq" (te.lte 5 5) "PASS" world
+  check "lte lt" (te.lte 4 5) "PASS" world
+  check "lte fail" (startsWith (te.lte 6 5) "FAIL:") 1 world
+
+  -- Test string assertions
+  check "contains pass" (te.str_contains "hello world" "world") "PASS" world
+  check "contains fail" (startsWith (te.str_contains "hello" "xyz") "FAIL:") 1 world
+  check "starts pass" (te.str_starts "hello world" "hello") "PASS" world
+  check "starts fail" (startsWith (te.str_starts "hello" "xyz") "FAIL:") 1 world
+
+  -- Test list assertions
+  check "has_length" (te.has_length [1, 2, 3] 3) "PASS" world
+  check "has_length fail" (startsWith (te.has_length [1] 3) "FAIL:") 1 world
+  check "is_empty" (te.is_empty []) "PASS" world
+  check "is_empty fail" (startsWith (te.is_empty [1]) "FAIL:") 1 world
+  check "is_nonempty" (te.is_nonempty [1]) "PASS" world
+  check "is_nonempty fail" (startsWith (te.is_nonempty []) "FAIL:") 1 world
+
+  -- Test is_pass
+  check "is_pass true" (te.is_pass "PASS") 1 world
+  check "is_pass false" (te.is_pass "FAIL: nope") 0 world
+
+  -- Test count_passed
+  results = [te.eq 1 1, te.eq 2 2, te.eq 1 2]
+  check "count 2/3" (te.count_passed results) 2 world
+
+  -- Test fmt output
+  check "fmt pass" (te.fmt "test" (te.eq 1 1)) "PASS: test" world
+  check "fmt fail prefix" (startsWith (te.fmt "bad" (te.eq 1 2)) "FAIL: bad") 1 world
+
+  0

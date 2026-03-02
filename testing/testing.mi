@@ -1,0 +1,61 @@
+-- testing: lightweight test assertions for milang
+--
+-- Returns "PASS" or "FAIL:reason" strings (not records, to avoid
+-- compiler issues with record returns from modules).
+
+-- Assert equality (compares via toString)
+eq a b = if (toString a == toString b) ("PASS") ("FAIL: expected " + toString b + ", got " + toString a)
+
+-- Assert not equal
+neq got expected = \
+  if (toString got /= toString expected) ("PASS") \
+    ("FAIL: expected not " + toString expected)
+
+-- Assert truthy
+ok val = if (val) ("PASS") ("FAIL: expected truthy, got " + toString val)
+
+-- Assert falsy
+not_ok val = if (val) ("FAIL: expected falsy, got " + toString val) ("PASS")
+
+-- Assert greater than
+gt a b = if (a > b) ("PASS") ("FAIL: " + toString a + " not > " + toString b)
+
+-- Assert less than
+lt a b = if (a < b) ("PASS") ("FAIL: " + toString a + " not < " + toString b)
+
+-- Assert greater than or equal
+gte a b = if (a >= b) ("PASS") ("FAIL: " + toString a + " not >= " + toString b)
+
+-- Assert less than or equal
+lte a b = if (a <= b) ("PASS") ("FAIL: " + toString a + " not <= " + toString b)
+
+-- Assert string contains
+str_contains haystack needle = \
+  if (indexOf haystack needle >= 0) ("PASS") \
+    ("FAIL: missing \"" + needle + "\"")
+
+-- Assert starts with
+str_starts haystack prefix = \
+  if (startsWith haystack prefix) ("PASS") \
+    ("FAIL: doesn't start with \"" + prefix + "\"")
+
+-- Assert list length
+has_length xs n = \
+  if (len xs == n) ("PASS") \
+    ("FAIL: length " + toString (len xs) + " not " + toString n)
+
+-- Assert list is empty
+is_empty xs = if (len xs == 0) ("PASS") ("FAIL: expected empty, got length " + toString (len xs))
+
+-- Assert list is non-empty
+is_nonempty xs = if (len xs > 0) ("PASS") ("FAIL: expected non-empty list")
+
+-- Check if result is pass
+is_pass r = r == "PASS"
+
+-- Format test result with label
+fmt label r = if (r == "PASS") ("PASS: " + label) ("FAIL: " + label + " -- " + slice r 6 (len r))
+
+-- Count passes in list of results
+count_step acc r = if (r == "PASS") (acc + 1) (acc)
+count_passed results = fold count_step 0 results
