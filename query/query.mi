@@ -1,0 +1,92 @@
+-- query: collection query DSL for milang
+--
+-- LINQ-style operations on lists.
+--
+-- NOTE: fold + nested higher-order functions is broken in milang
+-- (inner lambda doesn't capture fold element correctly).
+-- Named-function fold callbacks with explicit params work.
+-- order_by uses string-encoded sort to avoid this issue.
+
+-- Filter elements matching predicate
+where_ pred xs = filter pred xs
+
+-- Transform elements
+select f xs = map f xs
+
+-- Helpers for order_by (non-recursive pad to avoid module recursion crash)
+zeros = "0000000000000000000000000000000000000000"
+pad n = (slice zeros 0 (10 - len (toString n))) + toString n
+get_at xs i = fromMaybe 0 (head (drop i xs))
+
+-- Sort by a key function (ascending)
+-- Strategy: encode key:index as padded strings, sort strings, extract by index
+order_by key xs = ob_impl key xs (len xs)
+ob_impl key xs n = ob_extract xs (sort (ob_keyed key xs (range 0 n)))
+ob_keyed key xs indices = map (\i -> pad (key (get_at xs i)) + ":" + pad i) indices
+ob_extract xs sorted = map (\s -> get_at xs (fromMaybe 0 (toInt (slice s 11 21)))) sorted
+
+-- Sort descending by key
+order_by_desc key xs = reverse (order_by key xs)
+
+-- Take first n elements
+limit n xs = take n xs
+
+-- Skip first n elements
+offset n xs = drop n xs
+
+-- Remove duplicates
+distinct xs = nub xs
+
+-- Group by key function — returns list of {key, items} records
+gb_step key acc x = gb_insert acc x (key x)
+gb_insert acc x k = if (any (\g -> toString g.key == toString k) acc) (gb_update acc x k) (push acc ({key = k; items = [x]}))
+gb_update acc x k = map (\g -> if (toString g.key == toString k) ({key = g.key; items = push g.items x}) (g)) acc
+group_by key xs = fold (gb_step key) [] xs
+
+-- Count elements
+count xs = len xs
+
+-- Sum
+sum_of xs = fold (\acc x -> acc + x) 0 xs
+
+-- Average
+avg_of xs = sum_of xs / len xs
+
+-- Minimum value
+min_of xs = fold (\acc x -> if (x < acc) (x) (acc)) (fromMaybe 0 (head xs)) (fromMaybe [] (tail xs))
+
+-- Maximum value
+max_of xs = fold (\acc x -> if (x > acc) (x) (acc)) (fromMaybe 0 (head xs)) (fromMaybe [] (tail xs))
+
+-- Flat map
+flat_map f xs = flatMap f xs
+
+-- Take while predicate holds
+tw_step pred acc x = if (acc.done == 1) (acc) (if (pred x) ({done = 0; items = push acc.items x}) ({done = 1; items = acc.items}))
+take_while pred xs = (fold (tw_step pred) ({done = 0; items = []}) xs).items
+
+-- Drop while predicate holds
+dw_step pred acc x = if (acc.dropping == 1) (if (pred x) (acc) ({dropping = 0; items = [x]})) ({dropping = 0; items = push acc.items x})
+drop_while pred xs = (fold (dw_step pred) ({dropping = 1; items = []}) xs).items
+
+-- Check if any/all elements match
+any_ pred xs = any pred xs
+all_ pred xs = all pred xs
+
+-- Partition: [matching, non-matching]
+partition pred xs = [filter pred xs, filter (\x -> if (pred x) (0) (1)) xs]
+
+-- Chunk: split list into sublists of size n
+last_chunk acc = fromMaybe [] (head (reverse acc))
+ch_step n acc x = if (len acc == 0) ([[x]]) (ch_try n acc x)
+ch_try n acc x = if (len (last_chunk acc) < n) (ch_append acc x) (push acc [x])
+ch_append acc x = push (take (len acc - 1) acc) (push (last_chunk acc) x)
+chunk n xs = fold (ch_step n) [] xs
+
+-- Window: sliding window of size n
+window n xs = map (\i -> take n (drop i xs)) (range 0 (len xs - n + 1))
+
+-- Frequencies: count occurrences
+fr_step acc x = fr_update acc (toString x)
+fr_update acc key = if (any (\f -> f.val == key) acc) (map (\f -> if (f.val == key) ({val = f.val; count = f.count + 1}) (f)) acc) (push acc ({val = key; count = 1}))
+frequencies xs = fold fr_step [] xs

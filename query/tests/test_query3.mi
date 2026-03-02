@@ -1,0 +1,36 @@
+q = import "../query.mi"
+
+check :~ [console]
+check label got expected world = \
+  if (got == expected) \
+    (world.io.println ("PASS: " + label)) \
+    (world.io.println ("FAIL: " + label + " got=" + got + " exp=" + expected))
+
+main world =
+  -- partition
+  parts = q.partition (\x -> x > 3) [1, 5, 2, 8, 3]
+  check "partition match" (toString (fromMaybe [] (head parts))) "[5, 8]" world
+  check "partition rest" (toString (fromMaybe [] (head (fromMaybe [] (tail parts))))) "[1, 2, 3]" world
+
+  -- chunk
+  check "chunk 2" (toString (q.chunk 2 [1, 2, 3, 4, 5])) "[[1, 2], [3, 4], [5]]" world
+  check "chunk 3" (toString (q.chunk 3 [1, 2, 3, 4, 5, 6, 7])) "[[1, 2, 3], [4, 5, 6], [7]]" world
+
+  -- window
+  check "window 2" (toString (q.window 2 [1, 2, 3, 4])) "[[1, 2], [2, 3], [3, 4]]" world
+  check "window 3" (toString (q.window 3 [1, 2, 3, 4, 5])) "[[1, 2, 3], [2, 3, 4], [3, 4, 5]]" world
+
+  -- group_by
+  gs = q.group_by (\x -> x % 2) [1, 2, 3, 4, 5]
+  check "group_by len" (toString (len gs)) "2" world
+  check "group_by odd" (toString (fromMaybe [] (head gs)).items) "[1, 3, 5]" world
+  check "group_by even" (toString (fromMaybe [] (head (fromMaybe [] (tail gs)))).items) "[2, 4]" world
+
+  -- frequencies
+  fs = q.frequencies [1, 2, 1, 3, 1, 2]
+  check "freq len" (toString (len fs)) "3" world
+
+  -- pipeline
+  result = q.limit 3 (q.order_by (\x -> x) (q.where_ (\x -> x > 2) [3, 1, 4, 1, 5, 9, 2, 6, 5, 3]))
+  check "pipeline" (toString result) "[3, 3, 4]" world
+  0

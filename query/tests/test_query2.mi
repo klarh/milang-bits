@@ -1,0 +1,22 @@
+q = import "../query.mi"
+
+check :~ [console]
+check label got expected world = \
+  if (got == expected) \
+    (world.io.println ("PASS: " + label)) \
+    (world.io.println ("FAIL: " + label + " got=" + got + " exp=" + expected))
+
+main world =
+  check "flat_map" (toString (q.flat_map (\x -> [x, x]) [1, 2])) "[1, 1, 2, 2]" world
+  check "take_while" (toString (q.take_while (\x -> x < 5) [1, 3, 7, 2])) "[1, 3]" world
+  check "take_while empty" (toString (q.take_while (\x -> x > 100) [1, 2])) "[]" world
+  check "drop_while" (toString (q.drop_while (\x -> x < 5) [1, 3, 7, 2])) "[7, 2]" world
+  check "drop_while all" (toString (q.drop_while (\x -> x < 100) [1, 2])) "[]" world
+  check "any_ true" (toString (q.any_ (\x -> x > 8) [3, 9, 2])) "1" world
+  check "any_ false" (toString (q.any_ (\x -> x > 10) [3, 9, 2])) "0" world
+  check "all_ true" (toString (q.all_ (\x -> x > 0) [3, 9, 2])) "1" world
+  check "all_ false" (toString (q.all_ (\x -> x > 2) [3, 9, 2])) "0" world
+  check "avg_of" (toString (q.avg_of [2, 4, 6])) "4" world
+  check "sum empty" (toString (q.sum_of [])) "0" world
+  check "count empty" (toString (q.count [])) "0" world
+  0

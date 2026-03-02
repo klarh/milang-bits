@@ -1,0 +1,38 @@
+q = import "../query.mi"
+
+check :~ [console]
+check label got expected world = \
+  if (got == expected) \
+    (world.io.println ("PASS: " + label)) \
+    (world.io.println ("FAIL: " + label + " got=" + got + " exp=" + expected))
+
+main world =
+  -- order_by with duplicates
+  check "order dups" (toString (q.order_by (\x -> x) [3, 1, 3, 2, 1])) "[1, 1, 2, 3, 3]" world
+
+  -- order_by larger list
+  check "order 8" (toString (q.order_by (\x -> x) [8, 3, 5, 1, 9, 2, 7, 4])) "[1, 2, 3, 4, 5, 7, 8, 9]" world
+
+  -- distinct preserves first occurrence order
+  check "distinct order" (toString (q.distinct [3, 1, 2, 1, 3])) "[3, 1, 2]" world
+
+  -- chunk 1
+  check "chunk 1" (toString (q.chunk 1 [1, 2, 3])) "[[1], [2], [3]]" world
+
+  -- window 1
+  check "window 1" (toString (q.window 1 [1, 2, 3])) "[[1], [2], [3]]" world
+
+  -- window same size
+  check "window same" (toString (q.window 3 [1, 2, 3])) "[[1, 2, 3]]" world
+
+  -- freq count
+  fs = q.frequencies ["a", "b", "a", "c", "a"]
+  f_a = fromMaybe ({val = ""; count = 0}) (head (filter (\f -> f.val == "a") fs))
+  check "freq count a" (toString f_a.count) "3" world
+
+  -- order_by with records
+  people = [({name = "c"; age = 30}), ({name = "a"; age = 20}), ({name = "b"; age = 40})]
+  sorted = q.order_by (\p -> p.age) people
+  check "order records" (toString (fromMaybe ({name = ""; age = 0}) (head sorted)).name) "a" world
+
+  0
