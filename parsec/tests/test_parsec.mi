@@ -1,0 +1,125 @@
+-- Test parsec library
+pc = import "../parsec.mi"
+
+check :~ [console]
+check label got expected world = \
+  if (toString got == toString expected) \
+    (world.io.println ("PASS: " + label)) \
+    (world.io.println ("FAIL: " + label + " got=" + toString got + " exp=" + toString expected))
+
+main world =
+  -- char: match specific character
+  r1 = pc.run (pc.char "a") "abc"
+  check "char ok" (toString r1.val) "a" world
+  check "char pos" r1.pos 1 world
+  r2 = pc.run (pc.char "x") "abc"
+  check "char fail" r2.ok 0 world
+
+  -- any_char
+  r3 = pc.run (pc.any_char) "xyz"
+  check "any_char" (toString r3.val) "x" world
+
+  -- one_of
+  r4 = pc.run (pc.one_of "aeiou") "echo"
+  check "one_of ok" (toString r4.val) "e" world
+  r5 = pc.run (pc.one_of "aeiou") "xyz"
+  check "one_of fail" r5.ok 0 world
+
+  -- none_of
+  r6 = pc.run (pc.none_of "abc") "xyz"
+  check "none_of ok" (toString r6.val) "x" world
+  r7 = pc.run (pc.none_of "abc") "abc"
+  check "none_of fail" r7.ok 0 world
+
+  -- string
+  r8 = pc.run (pc.string "hel") "hello"
+  check "string ok" (toString r8.val) "hel" world
+  check "string pos" r8.pos 3 world
+
+  -- seq2
+  r9 = pc.run (pc.seq2 (pc.char "a") (pc.char "b")) "abc"
+  check "seq2 ok" r9.ok 1 world
+  check "seq2 val" (toString r9.val) "[a, b]" world
+
+  -- keep_left
+  r10 = pc.run (pc.keep_left (pc.char "a") (pc.char "b")) "abc"
+  check "keep_left" (toString r10.val) "a" world
+
+  -- keep_right
+  r11 = pc.run (pc.keep_right (pc.char "a") (pc.char "b")) "abc"
+  check "keep_right" (toString r11.val) "b" world
+
+  -- alt
+  r12 = pc.run (pc.alt (pc.char "x") (pc.char "a")) "abc"
+  check "alt" (toString r12.val) "a" world
+
+  -- pmap
+  r13 = pc.run (pc.pmap (\v -> v + "!") (pc.char "a")) "abc"
+  check "pmap" (toString r13.val) "a!" world
+
+  -- many
+  r14 = pc.run (pc.many (pc.one_of "0123456789")) "123abc"
+  check "many ok" (toString r14.val) "[1, 2, 3]" world
+  r15 = pc.run (pc.many (pc.one_of "0123456789")) "abc"
+  check "many empty" (toString r15.val) "[]" world
+
+  -- many1
+  r16 = pc.run (pc.many1 (pc.one_of "0123456789")) "456"
+  check "many1 ok" (toString r16.val) "[4, 5, 6]" world
+  r17 = pc.run (pc.many1 (pc.one_of "0123456789")) "abc"
+  check "many1 fail" r17.ok 0 world
+
+  -- choice
+  r18 = pc.run (pc.choice [pc.char "x", pc.char "y", pc.char "a"]) "abc"
+  check "choice ok" (toString r18.val) "a" world
+
+  -- between
+  r19 = pc.run (pc.between (pc.char "(") (pc.char ")") (pc.one_of "abc")) "(a)"
+  check "between" (toString r19.val) "a" world
+
+  -- optional
+  r20 = pc.run (pc.optional "def" (pc.char "x")) "abc"
+  check "optional miss" (toString r20.val) "def" world
+  r21 = pc.run (pc.optional "def" (pc.char "a")) "abc"
+  check "optional hit" (toString r21.val) "a" world
+
+  -- eof
+  r22 = pc.run (pc.eof) ""
+  check "eof ok" r22.ok 1 world
+  r23 = pc.run (pc.eof) "x"
+  check "eof fail" r23.ok 0 world
+
+  -- skip
+  r24 = pc.run (pc.skip (pc.char "a")) "abc"
+  check "skip val" (toString r24.val) "" world
+  check "skip pos" r24.pos 1 world
+
+  -- label
+  r25 = pc.run (pc.label "need digit" (pc.one_of "0123456789")) "abc"
+  check "label" r25.err "need digit" world
+
+  -- sep_by
+  r26 = pc.run (pc.sep_by (pc.char ",") (pc.one_of "abc")) "a,b,c"
+  check "sep_by ok" (toString r26.val) "[a, b, c]" world
+  r27 = pc.run (pc.sep_by (pc.char ",") (pc.one_of "abc")) ""
+  check "sep_by empty" (toString r27.val) "[]" world
+
+  -- digit
+  r28 = pc.run (pc.digit) "5abc"
+  check "digit ok" (toString r28.val) "5" world
+
+  -- letter
+  r29 = pc.run (pc.letter) "abc"
+  check "letter ok" (toString r29.val) "a" world
+
+  -- lower/upper
+  r30 = pc.run (pc.lower) "abc"
+  check "lower" (toString r30.val) "a" world
+  r31 = pc.run (pc.upper) "ABC"
+  check "upper" (toString r31.val) "A" world
+
+  -- space
+  r32 = pc.run (pc.space) " x"
+  check "space" (toString r32.val) " " world
+
+  0

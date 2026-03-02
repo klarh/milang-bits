@@ -1,0 +1,119 @@
+-- parsec: parser combinator library for milang
+--
+-- A parser is a function: input -> pos -> result
+-- Results: {ok = 1; val = matched; pos = newPos}
+--       or {ok = 0; err = message; pos = pos}
+
+-- Result constructors
+ok_r val pos = {ok = 1; val = val; pos = pos}
+err_r msg pos = {ok = 0; err = msg; pos = pos}
+
+-- Run a parser on input from position 0
+run p input = p input 0
+
+-- Match a specific character
+char_match c input pos = if (slice input pos (pos + 1) == c) (ok_r c (pos + 1)) (err_r ("expected '" + c + "'") pos)
+char c input pos = if (pos < len input) (char_match c input pos) (err_r "unexpected end of input" pos)
+
+-- Match any single character
+any_char input pos = if (pos < len input) (ok_r (slice input pos (pos + 1)) (pos + 1)) (err_r "unexpected end of input" pos)
+
+-- Match any char from a set
+one_of_match chars input pos = if (indexOf chars (slice input pos (pos + 1)) >= 0) (ok_r (slice input pos (pos + 1)) (pos + 1)) (err_r ("expected one of '" + chars + "'") pos)
+one_of chars input pos = if (pos < len input) (one_of_match chars input pos) (err_r "unexpected end of input" pos)
+
+-- Match any char NOT in a set
+none_of_match chars input pos = if (indexOf chars (slice input pos (pos + 1)) < 0) (ok_r (slice input pos (pos + 1)) (pos + 1)) (err_r ("unexpected char") pos)
+none_of chars input pos = if (pos < len input) (none_of_match chars input pos) (err_r "unexpected end of input" pos)
+
+-- Match exact string
+string_match s input pos = if (slice input pos (pos + len s) == s) (ok_r s (pos + len s)) (err_r ("expected '" + s + "'") pos)
+string s input pos = if (pos + len s <= len input) (string_match s input pos) (err_r ("expected '" + s + "'") pos)
+
+-- Transform parser result value
+pmap f p input pos = pmap_apply f (p input pos)
+pmap_apply f r = if (r.ok == 1) (ok_r (f r.val) r.pos) (r)
+
+-- Sequence two parsers, return pair [a, b]
+seq2 pa pb input pos = seq_first (pa input pos) pb input
+seq_first ra pb input = if (ra.ok == 1) (seq_second ra (pb input ra.pos)) (ra)
+seq_second ra rb = if (rb.ok == 1) (ok_r [ra.val, rb.val] rb.pos) (rb)
+
+-- Keep left result
+keep_left pa pb input pos = keep_l (pa input pos) pb input
+keep_l ra pb input = if (ra.ok == 1) (keep_l2 ra (pb input ra.pos)) (ra)
+keep_l2 ra rb = if (rb.ok == 1) (ok_r ra.val rb.pos) (rb)
+
+-- Keep right result
+keep_right pa pb input pos = keep_r (pa input pos) pb input
+keep_r ra pb input = if (ra.ok == 1) (pb input ra.pos) (ra)
+
+-- Alternative: try first parser, on fail try second
+alt pa pb input pos = alt_try (pa input pos) pb input pos
+alt_try ra pb input pos = if (ra.ok == 1) (ra) (pb input pos)
+
+-- Choice: try parsers in order
+choice_step acc p input pos = if (acc.ok == 1) (acc) (p input pos)
+choice ps input pos = fold (\acc p -> choice_step acc p input pos) (err_r "no alternatives" pos) ps
+
+-- Zero or more (fold-based)
+many_step p input acc = if (acc.done == 1) (acc) (many_try (p input acc.pos) acc)
+many_try r acc = if (r.ok == 1) ({done = 0; items = push acc.items r.val; pos = r.pos}) ({done = 1; items = acc.items; pos = acc.pos})
+many p input pos = many_finish (fold (\acc idx -> many_step p input acc) ({done = 0; items = []; pos = pos}) (range 0 (len input)))
+many_finish acc = ok_r acc.items acc.pos
+
+-- One or more (fold-based)
+many1 p input pos = many1_check (p input pos) p input
+many1_check r p input = if (r.ok == 1) (many1_rest r p input) (r)
+many1_rest r p input = many1_finish (fold (\acc idx -> many_step p input acc) ({done = 0; items = [r.val]; pos = r.pos}) (range 0 (len input)))
+many1_finish acc = ok_r acc.items acc.pos
+
+-- Between: opening, content, closing — keep content
+between open close content input pos = between1 (open input pos) close content input
+between1 ro close content input = if (ro.ok == 1) (between2 (content input ro.pos) close input) (ro)
+between2 rc close input = if (rc.ok == 1) (between3 rc (close input rc.pos)) (rc)
+between3 rc rcl = if (rcl.ok == 1) (ok_r rc.val rcl.pos) (rcl)
+
+-- Sep by
+sep_step sep p input acc = if (acc.done == 1) (acc) (sep_try (sep input acc.pos) p input acc)
+sep_try sr p input acc = if (sr.ok == 1) (sep_item (p input sr.pos) acc) ({done = 1; items = acc.items; pos = acc.pos})
+sep_item r acc = if (r.ok == 1) ({done = 0; items = push acc.items r.val; pos = r.pos}) ({done = 1; items = acc.items; pos = acc.pos})
+
+sep_by1 sep p input pos = sep_check (p input pos) sep p input
+sep_check r sep p input = if (r.ok == 1) (sep_rest r sep p input) (r)
+sep_rest r sep p input = sep_finish (fold (\acc idx -> sep_step sep p input acc) ({done = 0; items = [r.val]; pos = r.pos}) (range 0 (len input)))
+sep_finish acc = ok_r acc.items acc.pos
+
+sep_by sep p input pos = alt (sep_by1 sep p) (\inp ps -> ok_r [] ps) input pos
+
+-- Optional
+optional def p input pos = opt_try (p input pos) def
+opt_try r def = if (r.ok == 1) (r) (ok_r def r.pos)
+
+-- End of input
+eof input pos = if (pos >= len input) (ok_r "" pos) (err_r "expected end of input" pos)
+
+-- Skip
+skip p input pos = skip_apply (p input pos)
+skip_apply r = if (r.ok == 1) (ok_r "" r.pos) (r)
+
+-- Label
+label msg p input pos = label_apply msg (p input pos)
+label_apply msg r = if (r.ok == 1) (r) (err_r msg r.pos)
+
+-- Chainl1: left-associative binary operator chain
+chain_step op p input acc = if (acc.done == 1) (acc) (chain_op (op input acc.pos) p input acc)
+chain_op opr p input acc = if (opr.ok == 1) (chain_val opr (p input opr.pos) acc) ({done = 1; val = acc.val; pos = acc.pos})
+chain_val opr vr acc = if (vr.ok == 1) ({done = 0; val = opr.val acc.val vr.val; pos = vr.pos}) ({done = 1; val = acc.val; pos = acc.pos})
+
+chainl1 p op input pos = chainl1_first (p input pos) op p input
+chainl1_first r op p input = if (r.ok == 1) (chainl1_rest r op p input) (r)
+chainl1_rest r op p input = chainl1_fin (fold (\acc idx -> chain_step op p input acc) ({done = 0; val = r.val; pos = r.pos}) (range 0 (len input)))
+chainl1_fin acc = ok_r acc.val acc.pos
+
+-- Convenience: match a single digit
+digit input pos = one_of "0123456789" input pos
+letter input pos = one_of "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" input pos
+lower input pos = one_of "abcdefghijklmnopqrstuvwxyz" input pos
+upper input pos = one_of "ABCDEFGHIJKLMNOPQRSTUVWXYZ" input pos
+space input pos = one_of " \n" input pos
