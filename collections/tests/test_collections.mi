@@ -1,0 +1,102 @@
+c = import "../collections.mi"
+te = import "../../testing/testing.mi"
+
+check :~ [console]
+check label result world = world.io.println (te.fmt label result)
+
+main world =
+  -- HashMap tests
+  m = c.hm_new 8
+  c.hm_put m "x" 10
+  c.hm_put m "y" 20
+  c.hm_put m "z" 30
+  check "hm size" (te.eq (c.hm_size m) 3) world
+  check "hm has x" (te.eq (c.hm_has m "x") 1) world
+  check "hm has missing" (te.eq (c.hm_has m "w") 0) world
+  check "hm get_or hit" (te.eq (c.hm_get_or m "x" 0) 10) world
+  check "hm get_or miss" (te.eq (c.hm_get_or m "w" 99) 99) world
+  c.hm_put m "x" 42
+  check "hm overwrite" (te.eq (c.hm_get_or m "x" 0) 42) world
+  c.hm_remove m "y"
+  check "hm remove size" (te.eq (c.hm_size m) 2) world
+  check "hm remove gone" (te.eq (c.hm_has m "y") 0) world
+  c.hm_clear m
+  check "hm clear" (te.eq (c.hm_size m) 0) world
+
+  -- Deque tests
+  d = c.deque_new 4
+  c.deque_push_back d 10
+  c.deque_push_back d 20
+  c.deque_push_front d 5
+  check "deque size" (te.eq (c.deque_size d) 3) world
+  check "deque front" (te.eq (c.deque_peek_front d) 5) world
+  check "deque back" (te.eq (c.deque_peek_back d) 20) world
+  check "deque get 1" (te.eq (c.deque_get d 1) 10) world
+  v1 = c.deque_pop_front d
+  check "deque pop_front" (te.eq v1 5) world
+  v2 = c.deque_pop_back d
+  check "deque pop_back" (te.eq v2 20) world
+  check "deque after pops" (te.eq (c.deque_size d) 1) world
+  c.deque_clear d
+  check "deque clear" (te.eq (c.deque_size d) 0) world
+
+  -- Deque wraparound
+  d2 = c.deque_new 4
+  c.deque_push_back d2 1
+  c.deque_push_back d2 2
+  c.deque_push_back d2 3
+  c.deque_push_back d2 4
+  c.deque_pop_front d2
+  c.deque_pop_front d2
+  c.deque_push_back d2 5
+  c.deque_push_back d2 6
+  check "deque wrap front" (te.eq (c.deque_peek_front d2) 3) world
+  check "deque wrap back" (te.eq (c.deque_peek_back d2) 6) world
+  check "deque wrap size" (te.eq (c.deque_size d2) 4) world
+
+  -- MinHeap tests
+  h = c.heap_new 4
+  c.heap_push h 30
+  c.heap_push h 10
+  c.heap_push h 20
+  c.heap_push h 5
+  check "heap size" (te.eq (c.heap_size h) 4) world
+  check "heap peek" (te.eq (c.heap_peek h) 5) world
+  p1 = c.heap_pop h
+  check "heap pop 1" (te.eq p1 5) world
+  p2 = c.heap_pop h
+  check "heap pop 2" (te.eq p2 10) world
+  p3 = c.heap_pop h
+  check "heap pop 3" (te.eq p3 20) world
+  p4 = c.heap_pop h
+  check "heap pop 4" (te.eq p4 30) world
+  check "heap empty" (te.eq (c.heap_size h) 0) world
+
+  -- IntSet tests
+  s = c.iset_new 8
+  c.iset_add s 10
+  c.iset_add s 20
+  c.iset_add s 30
+  check "iset size" (te.eq (c.iset_size s) 3) world
+  check "iset has 10" (te.eq (c.iset_has s 10) 1) world
+  check "iset has 99" (te.eq (c.iset_has s 99) 0) world
+  c.iset_add s 10
+  check "iset dup" (te.eq (c.iset_size s) 3) world
+  c.iset_remove s 20
+  check "iset remove" (te.eq (c.iset_size s) 2) world
+  check "iset removed" (te.eq (c.iset_has s 20) 0) world
+  c.iset_clear s
+  check "iset clear" (te.eq (c.iset_size s) 0) world
+
+  -- HashMap stress (trigger resize)
+  m2 = c.hm_new 4
+  c.hm_put m2 "a" 1
+  c.hm_put m2 "b" 2
+  c.hm_put m2 "c" 3
+  c.hm_put m2 "d" 4
+  c.hm_put m2 "e" 5
+  c.hm_put m2 "f" 6
+  check "hm stress size" (te.eq (c.hm_size m2) 6) world
+  check "hm stress get" (te.eq (c.hm_get_or m2 "f" 0) 6) world
+
+  0

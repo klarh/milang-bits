@@ -1,0 +1,58 @@
+rx = import "../regex.mi"
+te = import "../../testing/testing.mi"
+
+check :~ [console]
+check label result world = world.io.println (te.fmt label result)
+
+main world =
+  -- Compile and test
+  re = rx.re_compile "\\d+"
+  check "test match" (te.eq (rx.re_test re "abc123def") 1) world
+  check "test no match" (te.eq (rx.re_test re "abcdef") 0) world
+
+  -- Match
+  check "match" (te.eq (rx.re_match re "abc123def") "123") world
+  check "match none" (te.eq (rx.re_match re "abcdef") "") world
+
+  -- Match position
+  check "match_start" (te.eq (rx.re_match_start re "abc123def") 3) world
+  check "match_len" (te.eq (rx.re_match_len re "abc123def") 3) world
+  check "match_start miss" (te.eq (rx.re_match_start re "abc") (0 - 1)) world
+
+  -- Capture groups
+  re2 = rx.re_compile "(\\w+)@(\\w+)"
+  check "capture 0" (te.eq (rx.re_capture re2 "user@host" 0) "user@host") world
+  check "capture 1" (te.eq (rx.re_capture re2 "user@host" 1) "user") world
+  check "capture 2" (te.eq (rx.re_capture re2 "user@host" 2) "host") world
+  check "capture count" (te.eq (rx.re_capture_count re2 "user@host") 3) world
+
+  -- Replace
+  check "replace" (te.eq (rx.re_replace re "abc123def456" "X") "abcXdef456") world
+  check "replace_all" (te.eq (rx.re_replace_all re "abc123def456" "X") "abcXdefX") world
+  check "replace no match" (te.eq (rx.re_replace re "abcdef" "X") "abcdef") world
+
+  -- Find all
+  check "find_all" (te.eq (rx.re_find_all re "a1b22c333") "1|22|333") world
+
+  -- Split
+  re3 = rx.re_compile "[,;]+"
+  check "split" (te.eq (rx.re_split re3 "a,b;;c,d") "a|b|c|d") world
+
+  -- to_list
+  matches = rx.to_list (rx.re_find_all re "a1b22c333")
+  check "to_list" (te.eq (toString matches) "[1, 22, 333]") world
+
+  -- is_valid
+  check "is_valid yes" (te.eq (rx.re_is_valid "\\d+") 1) world
+  check "is_valid no" (te.eq (rx.re_is_valid "[invalid") 0) world
+
+  -- Unicode
+  re4 = rx.re_compile "\\p{L}+"
+  check "unicode" (te.eq (rx.re_test re4 "hello") 1) world
+
+  -- Word boundaries
+  re5 = rx.re_compile "\\bfoo\\b"
+  check "word boundary" (te.eq (rx.re_test re5 "foo bar") 1) world
+  check "word boundary no" (te.eq (rx.re_test re5 "foobar") 0) world
+
+  0

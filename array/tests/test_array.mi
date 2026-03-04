@@ -1,0 +1,108 @@
+-- Tests for the array library
+arr = import "../array.mi"
+te = import "../../testing/testing.mi"
+
+check :~ [console]
+check label result world = world.io.println (te.fmt label result)
+
+main world =
+  -- new + push + length
+  a = arr.new 4
+  arr.push_back a 10
+  arr.push_back a 20
+  arr.push_back a 30
+  check "new+push length" (te.eq (arr.length a) 3) world
+
+  -- get
+  check "get 0" (te.eq (arr.get a 0) 10) world
+  check "get 1" (te.eq (arr.get a 1) 20) world
+  check "get 2" (te.eq (arr.get a 2) 30) world
+  check "get out-of-bounds" (te.eq (arr.get a 99) 0) world
+
+  -- set
+  arr.set a 1 42
+  check "set" (te.eq (arr.get a 1) 42) world
+  arr.set a 1 20
+
+  -- pop
+  popped = arr.pop_back a
+  check "pop value" (te.eq popped 30) world
+  check "pop length" (te.eq (arr.length a) 2) world
+  arr.push_back a 30
+
+  -- swap
+  arr.swap a 0 2
+  check "swap 0" (te.eq (arr.get a 0) 30) world
+  check "swap 2" (te.eq (arr.get a 2) 10) world
+  arr.swap a 0 2
+
+  -- reverse
+  arr.reverse_mut a
+  check "reverse 0" (te.eq (arr.get a 0) 30) world
+  check "reverse 2" (te.eq (arr.get a 2) 10) world
+  arr.reverse_mut a
+
+  -- sort
+  b = arr.new 4
+  arr.push_back b 30
+  arr.push_back b 10
+  arr.push_back b 20
+  arr.sort_mut b
+  check "sort 0" (te.eq (arr.get b 0) 10) world
+  check "sort 1" (te.eq (arr.get b 1) 20) world
+  check "sort 2" (te.eq (arr.get b 2) 30) world
+
+  -- slice
+  s = arr.arr_slice a 0 2
+  check "slice len" (te.eq (arr.length s) 2) world
+  check "slice 0" (te.eq (arr.get s 0) 10) world
+  check "slice 1" (te.eq (arr.get s 1) 20) world
+
+  -- copy
+  c = arr.copy a
+  check "copy len" (te.eq (arr.length c) (arr.length a)) world
+  check "copy 0" (te.eq (arr.get c 0) (arr.get a 0)) world
+
+  -- concat
+  d = arr.arr_concat a b
+  check "concat len" (te.eq (arr.length d) 6) world
+
+  -- index_of / contains
+  check "index_of found" (te.eq (arr.index_of a 20) 1) world
+  check "index_of missing" (te.eq (arr.index_of a 99) (0 - 1)) world
+  check "contains yes" (te.eq (arr.arr_contains a 10) 1) world
+  check "contains no" (te.eq (arr.arr_contains a 99) 0) world
+
+  -- from_list
+  e = arr.from_list [5, 15, 25]
+  check "from_list len" (te.eq (arr.length e) 3) world
+  check "from_list 0" (te.eq (arr.get e 0) 5) world
+  check "from_list 2" (te.eq (arr.get e 2) 25) world
+
+  -- to_list
+  lst = arr.to_list e
+  check "to_list" (te.eq (toString lst) "[5, 15, 25]") world
+
+  -- arr_map
+  f = arr.arr_map (\x -> x * 2) e
+  check "map 0" (te.eq (arr.get f 0) 10) world
+  check "map 2" (te.eq (arr.get f 2) 50) world
+
+  -- arr_filter
+  g = arr.from_list [1, 2, 3, 4, 5]
+  h = arr.arr_filter (\x -> x > 3) g
+  check "filter len" (te.eq (arr.length h) 2) world
+  check "filter 0" (te.eq (arr.get h 0) 4) world
+
+  -- arr_fold / arr_sum
+  check "sum" (te.eq (arr.arr_sum g) 15) world
+  check "fold" (te.eq (arr.arr_fold (\acc x -> acc + x) 0 g) 15) world
+
+  -- arr_to_string
+  check "to_string" (te.eq (arr.arr_to_string e) "[5, 15, 25]") world
+
+  -- clear
+  arr.clear a
+  check "clear" (te.eq (arr.length a) 0) world
+
+  0

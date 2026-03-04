@@ -1,0 +1,50 @@
+-- collections: Maps, Sets, Deques, Priority Queues
+--
+-- C-backed data structures for milang.
+-- HashMap: string-keyed int-valued hash map
+-- Deque: double-ended queue (ring buffer)
+-- MinHeap: min-priority queue
+-- IntSet: integer set
+
+ffi = import' "collections_ffi.h" ({src = "collections_ffi.c"})
+
+-- HashMap (string -> int)
+hm_new cap = ffi.mi_hm_new cap
+hm_free m = ffi.mi_hm_free m
+hm_size m = ffi.mi_hm_size m
+hm_put m key val = ffi.mi_hm_put m key val
+hm_get m key = if (ffi.mi_hm_has m key) (Just (ffi.mi_hm_get m key)) Nothing
+hm_get_or m key default = if (ffi.mi_hm_has m key) (ffi.mi_hm_get m key) default
+hm_has m key = ffi.mi_hm_has m key
+hm_remove m key = ffi.mi_hm_remove m key
+hm_clear m = ffi.mi_hm_clear m
+
+-- Deque (double-ended queue of ints)
+deque_new cap = ffi.mi_deque_new cap
+deque_free d = ffi.mi_deque_free d
+deque_size d = ffi.mi_deque_size d
+deque_push_back d val = ffi.mi_deque_push_back d val
+deque_push_front d val = ffi.mi_deque_push_front d val
+deque_pop_back d = ffi.mi_deque_pop_back d
+deque_pop_front d = ffi.mi_deque_pop_front d
+deque_peek_front d = ffi.mi_deque_peek_front d
+deque_peek_back d = ffi.mi_deque_peek_back d
+deque_get d idx = ffi.mi_deque_get d idx
+deque_clear d = ffi.mi_deque_clear d
+
+-- MinHeap (priority queue, smallest first)
+heap_new cap = ffi.mi_heap_new cap
+heap_free h = ffi.mi_heap_free h
+heap_size h = ffi.mi_heap_size h
+heap_push h val = ffi.mi_heap_push h val
+heap_pop h = ffi.mi_heap_pop h
+heap_peek h = ffi.mi_heap_peek h
+
+-- IntSet (set of integers, 0 cannot be stored)
+iset_new cap = ffi.mi_iset_new cap
+iset_free s = ffi.mi_iset_free s
+iset_size s = ffi.mi_iset_size s
+iset_add s val = ffi.mi_iset_add s val
+iset_has s val = ffi.mi_iset_has s val
+iset_remove s val = ffi.mi_iset_remove s val
+iset_clear s = ffi.mi_iset_clear s

@@ -1,0 +1,113 @@
+bin = import "../binary.mi"
+te = import "../../testing/testing.mi"
+
+check :~ [console]
+check label result world = world.io.println (te.fmt label result)
+
+main world =
+  -- Basic buffer ops
+  b = bin.buf_new 16
+  check "new len" (te.eq (bin.buf_len b) 0) world
+  check "new pos" (te.eq (bin.buf_pos b) 0) world
+
+  -- Write and read u8
+  bin.write_u8 b 0
+  bin.write_u8 b 127
+  bin.write_u8 b 255
+  check "write u8 len" (te.eq (bin.buf_len b) 3) world
+  bin.buf_reset b
+  check "read u8 0" (te.eq (bin.read_u8 b) 0) world
+  check "read u8 127" (te.eq (bin.read_u8 b) 127) world
+  check "read u8 255" (te.eq (bin.read_u8 b) 255) world
+
+  -- Write and read i8
+  b2 = bin.buf_new 16
+  bin.write_i8 b2 (0 - 1)
+  bin.write_i8 b2 (0 - 128)
+  bin.buf_reset b2
+  check "read i8 -1" (te.eq (bin.read_i8 b2) (0 - 1)) world
+  check "read i8 -128" (te.eq (bin.read_i8 b2) (0 - 128)) world
+
+  -- u16 big-endian
+  b3 = bin.buf_new 16
+  bin.write_u16be b3 0
+  bin.write_u16be b3 256
+  bin.write_u16be b3 65535
+  bin.buf_reset b3
+  check "u16be 0" (te.eq (bin.read_u16be b3) 0) world
+  check "u16be 256" (te.eq (bin.read_u16be b3) 256) world
+  check "u16be 65535" (te.eq (bin.read_u16be b3) 65535) world
+
+  -- u16 little-endian
+  b4 = bin.buf_new 16
+  bin.write_u16le b4 258
+  bin.buf_reset b4
+  check "u16le 258" (te.eq (bin.read_u16le b4) 258) world
+
+  -- u32 big-endian
+  b5 = bin.buf_new 16
+  bin.write_u32be b5 305419896
+  bin.buf_reset b5
+  check "u32be" (te.eq (bin.read_u32be b5) 305419896) world
+
+  -- u32 little-endian
+  b6 = bin.buf_new 16
+  bin.write_u32le b6 305419896
+  bin.buf_reset b6
+  check "u32le" (te.eq (bin.read_u32le b6) 305419896) world
+
+  -- i32 signed
+  b7 = bin.buf_new 16
+  bin.write_i32be b7 (0 - 1)
+  bin.buf_reset b7
+  check "i32be -1" (te.eq (bin.read_i32be b7) (0 - 1)) world
+
+  -- u64
+  b8 = bin.buf_new 16
+  bin.write_u64be b8 1234567890
+  bin.buf_reset b8
+  check "u64be" (te.eq (bin.read_u64be b8) 1234567890) world
+
+  -- cstring
+  b9 = bin.buf_new 32
+  bin.write_cstring b9 "hello"
+  bin.write_cstring b9 "world"
+  bin.buf_reset b9
+  check "cstring 1" (te.eq (bin.read_cstring b9) "hello") world
+  check "cstring 2" (te.eq (bin.read_cstring b9) "world") world
+
+  -- read_bytes
+  b10 = bin.buf_new 16
+  bin.write_u8 b10 72
+  bin.write_u8 b10 105
+  bin.buf_reset b10
+  check "read_bytes" (te.eq (bin.read_bytes b10 2) "Hi") world
+
+  -- to_hex
+  b11 = bin.buf_new 16
+  bin.write_u8 b11 171
+  bin.write_u8 b11 205
+  check "to_hex" (te.eq (bin.to_hex b11) "abcd") world
+
+  -- seek and remaining
+  b12 = bin.buf_new 16
+  bin.write_u8 b12 1
+  bin.write_u8 b12 2
+  bin.write_u8 b12 3
+  bin.buf_seek b12 1
+  check "seek pos" (te.eq (bin.buf_pos b12) 1) world
+  check "remaining" (te.eq (bin.buf_remaining b12) 2) world
+  check "read after seek" (te.eq (bin.read_u8 b12) 2) world
+
+  -- slice
+  b13 = bin.buf_new 16
+  bin.write_u8 b13 10
+  bin.write_u8 b13 20
+  bin.write_u8 b13 30
+  s = bin.buf_slice b13 1 3
+  check "slice len" (te.eq (bin.buf_len s) 2) world
+  bin.buf_reset s
+  check "slice 0" (te.eq (bin.read_u8 s) 20) world
+  check "slice 1" (te.eq (bin.read_u8 s) 30) world
+
+  0

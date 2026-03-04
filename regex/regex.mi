@@ -1,0 +1,48 @@
+-- regex: Regular expressions via PCRE2
+--
+-- Compile-once, match-many API for pattern matching on strings.
+-- Backed by PCRE2 for production-quality Unicode-aware matching.
+
+ffi = import' "regex_ffi.h" ({src = "regex_ffi.c"; flags = "-lpcre2-8"})
+
+-- Compile a pattern (returns opaque regex handle)
+re_compile pat = ffi.mi_re_compile pat
+
+-- Free a compiled regex
+re_free re = ffi.mi_re_free re
+
+-- Test if pattern matches anywhere in subject (returns 0 or 1)
+re_test re subject = ffi.mi_re_test re subject
+
+-- Get the first match as a string (empty string if no match)
+re_match re subject = ffi.mi_re_match re subject
+
+-- Get the start position of first match (-1 if no match)
+re_match_start re subject = ffi.mi_re_match_start re subject
+
+-- Get the length of first match (0 if no match)
+re_match_len re subject = ffi.mi_re_match_len re subject
+
+-- Get a capture group (0 = full match, 1+ = groups)
+re_capture re subject group = ffi.mi_re_capture re subject group
+
+-- Get number of capture groups matched
+re_capture_count re subject = ffi.mi_re_capture_count re subject
+
+-- Replace first match
+re_replace re subject replacement = ffi.mi_re_replace re subject replacement
+
+-- Replace all matches
+re_replace_all re subject replacement = ffi.mi_re_replace_all re subject replacement
+
+-- Find all matches (returned as newline-separated string)
+re_find_all re subject = ffi.mi_re_find_all re subject
+
+-- Split by pattern (returned as newline-separated string)
+re_split re subject = ffi.mi_re_split re subject
+
+-- Check if a pattern is valid (returns 0 or 1)
+re_is_valid pat = ffi.mi_re_is_valid pat
+
+-- Convert find_all/split result to milang list (uses | as separator)
+to_list result = split result "|"

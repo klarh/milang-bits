@@ -1,0 +1,86 @@
+-- array: contiguous growable arrays backed by C malloc/realloc
+--
+-- Provides O(1) index, amortised O(1) push, O(n) insert/remove.
+-- Uses milang's C FFI for the backing store; wraps raw operations
+-- with a milang-friendly API.
+--
+-- Note: Arrays store integer values. For general-purpose use with
+-- milang values (strings, records), use Lists.
+
+ffi = import' "array_ffi.h" ({src = "array_ffi.c"})
+
+-- Create a new empty array with initial capacity
+new cap = ffi.mi_array_new cap
+
+-- Create an array from a list of integers
+from_list xs = result
+  a = ffi.mi_array_new (len xs)
+  dummy = fold (\_ x -> ffi.mi_array_push a x) 0 xs
+  result = a
+
+-- Array length
+length a = ffi.mi_array_len a
+
+-- Get element at index (returns 0 for out-of-bounds)
+get a idx = ffi.mi_array_get a idx
+
+-- Set element at index (mutates in place)
+set a idx val = ffi.mi_array_set a idx val
+
+-- Push element to end (mutates in place)
+push_back a val = ffi.mi_array_push a val
+
+-- Pop element from end (mutates, returns removed value)
+pop_back a = ffi.mi_array_pop a
+
+-- Swap two elements by index
+swap a i j = ffi.mi_array_swap a i j
+
+-- Reverse array in place
+reverse_mut a = ffi.mi_array_reverse a
+
+-- Clear all elements
+clear a = ffi.mi_array_clear a
+
+-- Slice: new array from start (inclusive) to end (exclusive)
+arr_slice a start end = ffi.mi_array_slice a start end
+
+-- Copy: new array with same contents
+copy a = ffi.mi_array_copy a
+
+-- Concat: new array with elements of a followed by b
+arr_concat x y = ffi.mi_array_concat x y
+
+-- Sort array in place (ascending integer order)
+sort_mut a = ffi.mi_array_sort a
+
+-- Find index of value (-1 if not found)
+index_of a val = ffi.mi_array_index_of a val
+
+-- Check if array contains value
+arr_contains a val = ffi.mi_array_contains a val
+
+-- Convert array to list
+to_list a = fold (\acc i -> push acc (ffi.mi_array_get a i)) [] (range 0 (ffi.mi_array_len a))
+
+-- Free array memory (call when done)
+free a = ffi.mi_array_free a
+
+-- Map: apply function to each element, return new array
+arr_map f a = result
+  result = ffi.mi_array_new (ffi.mi_array_len a)
+  dummy = fold (\acc i -> ffi.mi_array_push result (f (ffi.mi_array_get a i))) 0 (range 0 (ffi.mi_array_len a))
+
+-- Filter: return new array with elements where predicate is true
+arr_filter f a = result
+  result = ffi.mi_array_new (ffi.mi_array_len a)
+  dummy = fold (\acc i -> if (f (ffi.mi_array_get a i)) (ffi.mi_array_push result (ffi.mi_array_get a i)) (0)) 0 (range 0 (ffi.mi_array_len a))
+
+-- Fold over array elements
+arr_fold f acc a = fold (\ac i -> f ac (ffi.mi_array_get a i)) acc (range 0 (ffi.mi_array_len a))
+
+-- Sum all elements
+arr_sum a = arr_fold (\acc x -> acc + x) 0 a
+
+-- Array to string for display
+arr_to_string a = "[" + join ", " (map toString (to_list a)) + "]"

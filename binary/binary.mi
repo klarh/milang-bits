@@ -1,0 +1,50 @@
+-- binary: Read and write binary data with explicit endianness
+--
+-- Provides a mutable byte buffer backed by C malloc for building
+-- and parsing binary packets, file formats, and wire protocols.
+
+ffi = import' "binary_ffi.h" ({src = "binary_ffi.c"})
+
+-- Buffer lifecycle
+buf_new cap = ffi.mi_buf_new cap
+buf_free b = ffi.mi_buf_free b
+buf_len b = ffi.mi_buf_len b
+buf_pos b = ffi.mi_buf_pos b
+buf_seek b pos = ffi.mi_buf_seek b pos
+buf_reset b = ffi.mi_buf_reset b
+buf_remaining b = ffi.mi_buf_remaining b
+
+-- Write primitives
+write_u8 b val = ffi.mi_buf_write_u8 b val
+write_i8 b val = ffi.mi_buf_write_i8 b val
+write_u16be b val = ffi.mi_buf_write_u16be b val
+write_u16le b val = ffi.mi_buf_write_u16le b val
+write_i16be b val = ffi.mi_buf_write_i16be b val
+write_i16le b val = ffi.mi_buf_write_i16le b val
+write_u32be b val = ffi.mi_buf_write_u32be b val
+write_u32le b val = ffi.mi_buf_write_u32le b val
+write_i32be b val = ffi.mi_buf_write_i32be b val
+write_i32le b val = ffi.mi_buf_write_i32le b val
+write_u64be b val = ffi.mi_buf_write_u64be b val
+write_u64le b val = ffi.mi_buf_write_u64le b val
+write_cstring b s = ffi.mi_buf_write_cstring b s
+
+-- Read primitives
+read_u8 b = ffi.mi_buf_read_u8 b
+read_i8 b = ffi.mi_buf_read_i8 b
+read_u16be b = ffi.mi_buf_read_u16be b
+read_u16le b = ffi.mi_buf_read_u16le b
+read_i16be b = ffi.mi_buf_read_i16be b
+read_i16le b = ffi.mi_buf_read_i16le b
+read_u32be b = ffi.mi_buf_read_u32be b
+read_u32le b = ffi.mi_buf_read_u32le b
+read_i32be b = ffi.mi_buf_read_i32be b
+read_i32le b = ffi.mi_buf_read_i32le b
+read_u64be b = ffi.mi_buf_read_u64be b
+read_u64le b = ffi.mi_buf_read_u64le b
+read_cstring b = ffi.mi_buf_read_cstring b
+read_bytes b n = ffi.mi_buf_read_bytes_str b n
+
+-- Utilities
+to_hex b = ffi.mi_buf_to_hex b
+buf_slice b start end = ffi.mi_buf_slice b start end
