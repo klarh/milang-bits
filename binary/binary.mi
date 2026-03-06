@@ -7,7 +7,6 @@ ffi = import' "binary_ffi.h" ({src = "binary_ffi.c"})
 
 -- Buffer lifecycle
 buf_new cap = gc_manage (ffi.mi_buf_new cap) ffi.mi_buf_free
-buf_free b = ffi.mi_buf_free b
 buf_len b = ffi.mi_buf_len b
 buf_pos b = ffi.mi_buf_pos b
 buf_seek b pos = ffi.mi_buf_seek b pos

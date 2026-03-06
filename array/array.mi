@@ -63,7 +63,6 @@ arr_contains a val = ffi.mi_array_contains a val
 to_list a = fold (\acc i -> push acc (ffi.mi_array_get a i)) [] (range 0 (ffi.mi_array_len a))
 
 -- Free array memory (call when done)
-free a = ffi.mi_array_free a
 
 -- Map: apply function to each element, return new array
 arr_map f a = gc_manage result ffi.mi_array_free

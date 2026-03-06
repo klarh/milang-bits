@@ -10,7 +10,6 @@ ffi = import' "collections_ffi.h" ({src = "collections_ffi.c"})
 
 -- HashMap (string -> int)
 hm_new cap = gc_manage (ffi.mi_hm_new cap) ffi.mi_hm_free
-hm_free m = ffi.mi_hm_free m
 hm_size m = ffi.mi_hm_size m
 hm_put m key val = ffi.mi_hm_put m key val
 hm_get m key = if (ffi.mi_hm_has m key) (Just (ffi.mi_hm_get m key)) Nothing
@@ -21,7 +20,6 @@ hm_clear m = ffi.mi_hm_clear m
 
 -- Deque (double-ended queue of ints)
 deque_new cap = gc_manage (ffi.mi_deque_new cap) ffi.mi_deque_free
-deque_free d = ffi.mi_deque_free d
 deque_size d = ffi.mi_deque_size d
 deque_push_back d val = ffi.mi_deque_push_back d val
 deque_push_front d val = ffi.mi_deque_push_front d val
@@ -34,7 +32,6 @@ deque_clear d = ffi.mi_deque_clear d
 
 -- MinHeap (priority queue, smallest first)
 heap_new cap = gc_manage (ffi.mi_heap_new cap) ffi.mi_heap_free
-heap_free h = ffi.mi_heap_free h
 heap_size h = ffi.mi_heap_size h
 heap_push h val = ffi.mi_heap_push h val
 heap_pop h = ffi.mi_heap_pop h
@@ -42,7 +39,6 @@ heap_peek h = ffi.mi_heap_peek h
 
 -- IntSet (set of integers, 0 cannot be stored)
 iset_new cap = gc_manage (ffi.mi_iset_new cap) ffi.mi_iset_free
-iset_free s = ffi.mi_iset_free s
 iset_size s = ffi.mi_iset_size s
 iset_add s val = ffi.mi_iset_add s val
 iset_has s val = ffi.mi_iset_has s val

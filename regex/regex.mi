@@ -9,7 +9,6 @@ ffi = import' "regex_ffi.h" ({src = "regex_ffi.c"; flags = "-lpcre2-8"})
 re_compile pat = gc_manage (ffi.mi_re_compile pat) ffi.mi_re_free
 
 -- Free a compiled regex
-re_free re = ffi.mi_re_free re
 
 -- Test if pattern matches anywhere in subject (returns 0 or 1)
 re_test re subject = ffi.mi_re_test re subject
