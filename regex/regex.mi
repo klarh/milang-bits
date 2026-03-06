@@ -5,8 +5,8 @@
 
 ffi = import' "regex_ffi.h" ({src = "regex_ffi.c"; flags = "-lpcre2-8"})
 
--- Compile a pattern (returns opaque regex handle)
-re_compile pat = ffi.mi_re_compile pat
+-- Compile a pattern (returns opaque regex handle, GC-managed)
+re_compile pat = gc_manage (ffi.mi_re_compile pat) ffi.mi_re_free
 
 -- Free a compiled regex
 re_free re = ffi.mi_re_free re

@@ -6,7 +6,7 @@
 ffi = import' "binary_ffi.h" ({src = "binary_ffi.c"})
 
 -- Buffer lifecycle
-buf_new cap = ffi.mi_buf_new cap
+buf_new cap = gc_manage (ffi.mi_buf_new cap) ffi.mi_buf_free
 buf_free b = ffi.mi_buf_free b
 buf_len b = ffi.mi_buf_len b
 buf_pos b = ffi.mi_buf_pos b
@@ -47,16 +47,16 @@ read_bytes b n = ffi.mi_buf_read_bytes_str b n
 
 -- Utilities
 to_hex b = ffi.mi_buf_to_hex b
-buf_slice b start end = ffi.mi_buf_slice b start end
+buf_slice b start end = gc_manage (ffi.mi_buf_slice b start end) ffi.mi_buf_free
 
 -- Create buffer from hex string
-buf_from_hex hex = ffi.mi_buf_from_hex hex
+buf_from_hex hex = gc_manage (ffi.mi_buf_from_hex hex) ffi.mi_buf_free
 
 -- Compare two buffers (returns 1 if equal, 0 if not)
 buf_equals a b = ffi.mi_buf_equals a b
 
 -- Create buffer from list of byte values (u8)
-buf_from_list xs = b
+buf_from_list xs = gc_manage b ffi.mi_buf_free
   b = ffi.mi_buf_new (len xs)
   dummy = fold (\_ x -> ffi.mi_buf_write_u8 b x) 0 xs
 
@@ -64,6 +64,6 @@ buf_from_list xs = b
 buf_write_list b xs = fold (\_ x -> ffi.mi_buf_write_u8 b x) 0 xs
 
 -- Create buffer from a string (UTF-8 bytes, no null terminator)
-buf_from_string s = b
+buf_from_string s = gc_manage b ffi.mi_buf_free
   b = ffi.mi_buf_new (len s)
   dummy = ffi.mi_buf_write_cstring b s

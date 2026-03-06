@@ -10,13 +10,12 @@
 ffi = import' "array_ffi.h" ({src = "array_ffi.c"})
 
 -- Create a new empty array with initial capacity
-new cap = ffi.mi_array_new cap
+new cap = gc_manage (ffi.mi_array_new cap) ffi.mi_array_free
 
 -- Create an array from a list of integers
-from_list xs = result
-  a = ffi.mi_array_new (len xs)
-  dummy = fold (\_ x -> ffi.mi_array_push a x) 0 xs
-  result = a
+from_list xs = gc_manage result ffi.mi_array_free
+  result = ffi.mi_array_new (len xs)
+  dummy = fold (\_ x -> ffi.mi_array_push result x) 0 xs
 
 -- Array length
 length a = ffi.mi_array_len a
@@ -43,13 +42,13 @@ reverse_mut a = ffi.mi_array_reverse a
 clear a = ffi.mi_array_clear a
 
 -- Slice: new array from start (inclusive) to end (exclusive)
-arr_slice a start end = ffi.mi_array_slice a start end
+arr_slice a start end = gc_manage (ffi.mi_array_slice a start end) ffi.mi_array_free
 
 -- Copy: new array with same contents
-copy a = ffi.mi_array_copy a
+copy a = gc_manage (ffi.mi_array_copy a) ffi.mi_array_free
 
 -- Concat: new array with elements of a followed by b
-arr_concat x y = ffi.mi_array_concat x y
+arr_concat x y = gc_manage (ffi.mi_array_concat x y) ffi.mi_array_free
 
 -- Sort array in place (ascending integer order)
 sort_mut a = ffi.mi_array_sort a
@@ -67,12 +66,12 @@ to_list a = fold (\acc i -> push acc (ffi.mi_array_get a i)) [] (range 0 (ffi.mi
 free a = ffi.mi_array_free a
 
 -- Map: apply function to each element, return new array
-arr_map f a = result
+arr_map f a = gc_manage result ffi.mi_array_free
   result = ffi.mi_array_new (ffi.mi_array_len a)
   dummy = fold (\acc i -> ffi.mi_array_push result (f (ffi.mi_array_get a i))) 0 (range 0 (ffi.mi_array_len a))
 
 -- Filter: return new array with elements where predicate is true
-arr_filter f a = result
+arr_filter f a = gc_manage result ffi.mi_array_free
   result = ffi.mi_array_new (ffi.mi_array_len a)
   dummy = fold (\acc i -> if (f (ffi.mi_array_get a i)) (ffi.mi_array_push result (ffi.mi_array_get a i)) (0)) 0 (range 0 (ffi.mi_array_len a))
 
@@ -86,10 +85,9 @@ arr_sum a = arr_fold (\acc x -> acc + x) 0 a
 arr_to_string a = "[" + join ", " (map toString (to_list a)) + "]"
 
 -- Create array from integer range [start, end)
-from_range start end = result
-  a = ffi.mi_array_new (end - start)
-  dummy = fold (\_ i -> ffi.mi_array_push a i) 0 (range start end)
-  result = a
+from_range start end = gc_manage result ffi.mi_array_free
+  result = ffi.mi_array_new (end - start)
+  dummy = fold (\_ i -> ffi.mi_array_push result i) 0 (range start end)
 
 -- List of {idx; val} records for each element
 arr_enumerate a = map (\i -> {idx = i; val = ffi.mi_array_get a i}) (range 0 (ffi.mi_array_len a))
@@ -103,10 +101,10 @@ arr_zip_with f a b = map (\i -> f (ffi.mi_array_get a i) (ffi.mi_array_get b i))
   n = if (ffi.mi_array_len a < ffi.mi_array_len b) (ffi.mi_array_len a) (ffi.mi_array_len b)
 
 -- First n elements (new array)
-arr_take a n = ffi.mi_array_slice a 0 n
+arr_take a n = gc_manage (ffi.mi_array_slice a 0 n) ffi.mi_array_free
 
 -- Skip first n elements (new array)
-arr_drop a n = ffi.mi_array_slice a n (ffi.mi_array_len a)
+arr_drop a n = gc_manage (ffi.mi_array_slice a n (ffi.mi_array_len a)) ffi.mi_array_free
 
 -- Does any element satisfy predicate? (returns 1 or 0)
 arr_any pred a = arr_fold (\acc x -> if (acc == 1) 1 (pred x)) 0 a

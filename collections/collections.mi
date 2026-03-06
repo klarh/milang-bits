@@ -9,7 +9,7 @@
 ffi = import' "collections_ffi.h" ({src = "collections_ffi.c"})
 
 -- HashMap (string -> int)
-hm_new cap = ffi.mi_hm_new cap
+hm_new cap = gc_manage (ffi.mi_hm_new cap) ffi.mi_hm_free
 hm_free m = ffi.mi_hm_free m
 hm_size m = ffi.mi_hm_size m
 hm_put m key val = ffi.mi_hm_put m key val
@@ -20,7 +20,7 @@ hm_remove m key = ffi.mi_hm_remove m key
 hm_clear m = ffi.mi_hm_clear m
 
 -- Deque (double-ended queue of ints)
-deque_new cap = ffi.mi_deque_new cap
+deque_new cap = gc_manage (ffi.mi_deque_new cap) ffi.mi_deque_free
 deque_free d = ffi.mi_deque_free d
 deque_size d = ffi.mi_deque_size d
 deque_push_back d val = ffi.mi_deque_push_back d val
@@ -33,7 +33,7 @@ deque_get d idx = ffi.mi_deque_get d idx
 deque_clear d = ffi.mi_deque_clear d
 
 -- MinHeap (priority queue, smallest first)
-heap_new cap = ffi.mi_heap_new cap
+heap_new cap = gc_manage (ffi.mi_heap_new cap) ffi.mi_heap_free
 heap_free h = ffi.mi_heap_free h
 heap_size h = ffi.mi_heap_size h
 heap_push h val = ffi.mi_heap_push h val
@@ -41,7 +41,7 @@ heap_pop h = ffi.mi_heap_pop h
 heap_peek h = ffi.mi_heap_peek h
 
 -- IntSet (set of integers, 0 cannot be stored)
-iset_new cap = ffi.mi_iset_new cap
+iset_new cap = gc_manage (ffi.mi_iset_new cap) ffi.mi_iset_free
 iset_free s = ffi.mi_iset_free s
 iset_size s = ffi.mi_iset_size s
 iset_add s val = ffi.mi_iset_add s val
@@ -50,7 +50,7 @@ iset_remove s val = ffi.mi_iset_remove s val
 iset_clear s = ffi.mi_iset_clear s
 
 -- HashMap convenience
-hm_from_list pairs = m
+hm_from_list pairs = gc_manage m ffi.mi_hm_free
   m = ffi.mi_hm_new (len pairs)
   dummy = fold (\_ p -> ffi.mi_hm_put m p.key p.val) 0 pairs
 
@@ -67,7 +67,7 @@ hm_update m key f = if (ffi.mi_hm_has m key) (ffi.mi_hm_put m key (f (ffi.mi_hm_
 hm_merge m1 m2 = fold (\_ i -> ffi.mi_hm_put m1 (ffi.mi_hm_key_at m2 i) (ffi.mi_hm_val_at m2 i)) 0 (range 0 (ffi.mi_hm_size m2))
 
 -- Deque convenience
-deque_from_list xs = d
+deque_from_list xs = gc_manage d ffi.mi_deque_free
   d = ffi.mi_deque_new (len xs)
   dummy = fold (\_ x -> ffi.mi_deque_push_back d x) 0 xs
 
@@ -78,7 +78,7 @@ deque_contains d val = ffi.mi_deque_contains d val
 deque_reverse d = ffi.mi_deque_reverse d
 
 -- MinHeap convenience
-heap_from_list xs = h
+heap_from_list xs = gc_manage h ffi.mi_heap_free
   h = ffi.mi_heap_new (len xs)
   dummy = fold (\_ x -> ffi.mi_heap_push h x) 0 xs
 
@@ -87,7 +87,7 @@ heap_push_all h xs = fold (\_ x -> ffi.mi_heap_push h x) 0 xs
 heap_to_sorted_list h = fold (\acc _ -> push acc (ffi.mi_heap_pop h)) [] (range 0 (ffi.mi_heap_size h))
 
 -- IntSet convenience
-iset_from_list xs = s
+iset_from_list xs = gc_manage s ffi.mi_iset_free
   s = ffi.mi_iset_new (len xs)
   dummy = fold (\_ x -> ffi.mi_iset_add s x) 0 xs
 
@@ -95,16 +95,16 @@ iset_to_list s = map (\i -> ffi.mi_iset_elem_at s i) (range 0 (ffi.mi_iset_size 
 
 iset_add_all s xs = fold (\_ x -> ffi.mi_iset_add s x) 0 xs
 
-iset_union a b = result
+iset_union a b = gc_manage result ffi.mi_iset_free
   result = ffi.mi_iset_new (ffi.mi_iset_size a + ffi.mi_iset_size b)
   d1 = fold (\_ i -> ffi.mi_iset_add result (ffi.mi_iset_elem_at a i)) 0 (range 0 (ffi.mi_iset_size a))
   d2 = fold (\_ i -> ffi.mi_iset_add result (ffi.mi_iset_elem_at b i)) 0 (range 0 (ffi.mi_iset_size b))
 
-iset_intersection a b = result
+iset_intersection a b = gc_manage result ffi.mi_iset_free
   result = ffi.mi_iset_new (ffi.mi_iset_size a)
   dummy = fold (\_ i -> if (ffi.mi_iset_has b (ffi.mi_iset_elem_at a i)) (ffi.mi_iset_add result (ffi.mi_iset_elem_at a i)) 0) 0 (range 0 (ffi.mi_iset_size a))
 
-iset_difference a b = result
+iset_difference a b = gc_manage result ffi.mi_iset_free
   result = ffi.mi_iset_new (ffi.mi_iset_size a)
   dummy = fold (\_ i -> if (ffi.mi_iset_has b (ffi.mi_iset_elem_at a i)) 0 (ffi.mi_iset_add result (ffi.mi_iset_elem_at a i))) 0 (range 0 (ffi.mi_iset_size a))
 
