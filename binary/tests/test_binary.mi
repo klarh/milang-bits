@@ -110,4 +110,31 @@ main world =
   check "slice 0" (te.eq (bin.read_u8 s) 20) world
   check "slice 1" (te.eq (bin.read_u8 s) 30) world
 
+  -- buf_from_hex
+  bh = bin.buf_from_hex "48656c6c6f"
+  check "from_hex len" (te.eq (bin.buf_len bh) 5) world
+  bin.buf_reset bh
+  check "from_hex 0" (te.eq (bin.read_u8 bh) 72) world
+
+  -- buf_equals
+  be1 = bin.buf_new 8
+  be2 = bin.buf_new 8
+  bin.write_u8 be1 1
+  bin.write_u8 be1 2
+  bin.write_u8 be2 1
+  bin.write_u8 be2 2
+  check "equals yes" (te.eq (bin.buf_equals be1 be2) 1) world
+  bin.write_u8 be2 3
+  check "equals no" (te.eq (bin.buf_equals be1 be2) 0) world
+
+  -- buf_from_list
+  bl = bin.buf_from_list [65, 66, 67]
+  check "from_list len" (te.eq (bin.buf_len bl) 3) world
+  check "from_list hex" (te.eq (bin.to_hex bl) "414243") world
+
+  -- buf_write_list
+  bw = bin.buf_new 8
+  bin.buf_write_list bw [10, 20, 30]
+  check "write_list len" (te.eq (bin.buf_len bw) 3) world
+
   0

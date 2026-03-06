@@ -335,3 +335,52 @@ void mi_iset_clear(MiIntSet* s) {
     memset(s->data, 0, sizeof(long) * s->cap);
     s->size = 0;
 }
+
+long mi_iset_elem_at(MiIntSet* s, long idx) {
+    long count = 0;
+    for (long i = 0; i < s->cap; i++) {
+        if (s->data[i] != 0) {
+            if (count == idx) return s->data[i];
+            count++;
+        }
+    }
+    return 0;
+}
+
+char* mi_hm_key_at(MiHashMap* m, long idx) {
+    long count = 0;
+    for (long i = 0; i < m->cap; i++) {
+        if (m->buckets[i].occupied) {
+            if (count == idx) return m->buckets[i].key;
+            count++;
+        }
+    }
+    return "";
+}
+
+long mi_hm_val_at(MiHashMap* m, long idx) {
+    long count = 0;
+    for (long i = 0; i < m->cap; i++) {
+        if (m->buckets[i].occupied) {
+            if (count == idx) return m->buckets[i].val;
+            count++;
+        }
+    }
+    return 0;
+}
+
+long mi_deque_contains(MiDeque* d, long val) {
+    for (long i = 0; i < d->size; i++)
+        if (d->data[(d->head + i) % d->cap] == val) return 1;
+    return 0;
+}
+
+void mi_deque_reverse(MiDeque* d) {
+    for (long i = 0; i < d->size / 2; i++) {
+        long a = (d->head + i) % d->cap;
+        long b = (d->head + d->size - 1 - i) % d->cap;
+        long tmp = d->data[a];
+        d->data[a] = d->data[b];
+        d->data[b] = tmp;
+    }
+}

@@ -55,4 +55,18 @@ main world =
   check "word boundary" (te.eq (rx.re_test re5 "foo bar") 1) world
   check "word boundary no" (te.eq (rx.re_test re5 "foobar") 0) world
 
+  -- re_count
+  re6 = rx.re_compile "[0-9]+"
+  check "count" (te.eq (rx.re_count re6 "a1b22c333") 3) world
+  check "count zero" (te.eq (rx.re_count re6 "abc") 0) world
+
+  -- re_escape
+  check "escape" (te.eq (rx.re_escape "a.b*c") "a\\.b\\*c") world
+  check "escape plain" (te.eq (rx.re_escape "hello") "hello") world
+
+  -- re_capture_all
+  re7 = rx.re_compile "(\\w+)@(\\w+)"
+  caps = rx.re_capture_all re7 "user@host"
+  check "capture_all len" (te.eq (len caps) 3) world
+
   0

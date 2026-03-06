@@ -99,4 +99,89 @@ main world =
   check "hm stress size" (te.eq (c.hm_size m2) 6) world
   check "hm stress get" (te.eq (c.hm_get_or m2 "f" 0) 6) world
 
+  -- hm_from_list
+  m3 = c.hm_from_list [{key = "a"; val = 1}, {key = "b"; val = 2}, {key = "c"; val = 3}]
+  check "hm_from_list size" (te.eq (c.hm_size m3) 3) world
+  check "hm_from_list get" (te.eq (c.hm_get_or m3 "b" 0) 2) world
+
+  -- hm_keys / hm_values / hm_to_list
+  check "hm_keys len" (te.eq (len (c.hm_keys m3)) 3) world
+  check "hm_values len" (te.eq (len (c.hm_values m3)) 3) world
+  check "hm_to_list len" (te.eq (len (c.hm_to_list m3)) 3) world
+
+  -- hm_update
+  c.hm_update m3 "a" (\x -> x + 100)
+  check "hm_update" (te.eq (c.hm_get_or m3 "a" 0) 101) world
+
+  -- hm_merge
+  m4 = c.hm_from_list [{key = "x"; val = 99}]
+  c.hm_merge m3 m4
+  check "hm_merge" (te.eq (c.hm_get_or m3 "x" 0) 99) world
+
+  -- deque_from_list / deque_to_list
+  d2 = c.deque_from_list [10, 20, 30]
+  check "deque_from_list size" (te.eq (c.deque_size d2) 3) world
+  check "deque_from_list 0" (te.eq (c.deque_peek_front d2) 10) world
+  dl = c.deque_to_list d2
+  check "deque_to_list len" (te.eq (len dl) 3) world
+
+  -- deque_contains
+  check "deque_contains yes" (te.eq (c.deque_contains d2 20) 1) world
+  check "deque_contains no" (te.eq (c.deque_contains d2 99) 0) world
+
+  -- deque_reverse
+  c.deque_reverse d2
+  check "deque_reverse" (te.eq (c.deque_peek_front d2) 30) world
+
+  -- heap_from_list / heap_to_sorted_list
+  h2 = c.heap_from_list [5, 1, 3, 2, 4]
+  check "heap_from_list size" (te.eq (c.heap_size h2) 5) world
+  check "heap_from_list peek" (te.eq (c.heap_peek h2) 1) world
+  hs = c.heap_to_sorted_list h2
+  check "heap_to_sorted len" (te.eq (len hs) 5) world
+
+  -- heap_push_all
+  h3 = c.heap_new 4
+  c.heap_push_all h3 [9, 7, 8]
+  check "heap_push_all size" (te.eq (c.heap_size h3) 3) world
+  check "heap_push_all peek" (te.eq (c.heap_peek h3) 7) world
+
+  -- iset_from_list / iset_to_list
+  s2 = c.iset_from_list [3, 1, 4, 1, 5]
+  check "iset_from_list size" (te.eq (c.iset_size s2) 4) world
+  sl = c.iset_to_list s2
+  check "iset_to_list len" (te.eq (len sl) 4) world
+
+  -- iset_add_all
+  s3 = c.iset_new 8
+  c.iset_add_all s3 [10, 20, 30]
+  check "iset_add_all size" (te.eq (c.iset_size s3) 3) world
+
+  -- iset_union
+  sa = c.iset_from_list [1, 2, 3]
+  sb = c.iset_from_list [3, 4, 5]
+  su = c.iset_union sa sb
+  check "iset_union size" (te.eq (c.iset_size su) 5) world
+
+  -- iset_intersection
+  si = c.iset_intersection sa sb
+  check "iset_intersect size" (te.eq (c.iset_size si) 1) world
+  check "iset_intersect has 3" (te.eq (c.iset_has si 3) 1) world
+
+  -- iset_difference
+  sd = c.iset_difference sa sb
+  check "iset_diff size" (te.eq (c.iset_size sd) 2) world
+  check "iset_diff has 1" (te.eq (c.iset_has sd 1) 1) world
+  check "iset_diff no 3" (te.eq (c.iset_has sd 3) 0) world
+
+  -- iset_is_subset
+  sc = c.iset_from_list [1, 2]
+  check "iset_subset yes" (te.eq (c.iset_is_subset sc sa) 1) world
+  check "iset_subset no" (te.eq (c.iset_is_subset sa sb) 0) world
+
+  -- iset_equals
+  se = c.iset_from_list [3, 2, 1]
+  check "iset_equals yes" (te.eq (c.iset_equals sa se) 1) world
+  check "iset_equals no" (te.eq (c.iset_equals sa sb) 0) world
+
   0

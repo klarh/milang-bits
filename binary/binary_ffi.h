@@ -48,5 +48,7 @@ char* mi_buf_read_bytes_str(MiBuffer* b, long n);
 long mi_buf_remaining(MiBuffer* b);
 char* mi_buf_to_hex(MiBuffer* b);
 MiBuffer* mi_buf_slice(MiBuffer* b, long start, long end);
+MiBuffer* mi_buf_from_hex(char* hex);
+long mi_buf_equals(MiBuffer* a, MiBuffer* b);
 
 #endif

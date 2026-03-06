@@ -264,3 +264,39 @@ int mi_re_is_valid(char* pattern) {
     pcre2_code_free(code);
     return 1;
 }
+
+long mi_re_count(MiRegex* re, char* subject) {
+    if (!re) return 0;
+    pcre2_match_data* md = pcre2_match_data_create_from_pattern(re->code, NULL);
+    long count = 0;
+    PCRE2_SIZE offset = 0;
+    PCRE2_SIZE slen = strlen(subject);
+    while (offset <= slen) {
+        int rc = pcre2_match(re->code, (PCRE2_SPTR)subject,
+                             slen, offset, 0, md, NULL);
+        if (rc < 0) break;
+        count++;
+        PCRE2_SIZE* ov = pcre2_get_ovector_pointer(md);
+        offset = ov[1];
+        if (ov[0] == ov[1]) offset++;
+    }
+    pcre2_match_data_free(md);
+    return count;
+}
+
+char* mi_re_escape(char* str) {
+    long slen = strlen(str);
+    char* out = malloc(slen * 2 + 1);
+    long j = 0;
+    for (long i = 0; i < slen; i++) {
+        char c = str[i];
+        if (c == '.' || c == '^' || c == '$' || c == '*' || c == '+' ||
+            c == '?' || c == '(' || c == ')' || c == '[' || c == ']' ||
+            c == '{' || c == '}' || c == '|' || c == '\\') {
+            out[j++] = '\\';
+        }
+        out[j++] = c;
+    }
+    out[j] = '\0';
+    return out;
+}

@@ -46,3 +46,12 @@ re_is_valid pat = ffi.mi_re_is_valid pat
 
 -- Convert find_all/split result to milang list (uses | as separator)
 to_list result = split result "|"
+
+-- Count non-overlapping matches
+re_count re subject = ffi.mi_re_count re subject
+
+-- Escape regex metacharacters in a literal string
+re_escape str = ffi.mi_re_escape str
+
+-- Get all capture groups as a list of strings
+re_capture_all re subject = map (\i -> ffi.mi_re_capture re subject i) (range 0 (ffi.mi_re_capture_count re subject))

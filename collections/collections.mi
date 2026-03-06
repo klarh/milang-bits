@@ -48,3 +48,66 @@ iset_add s val = ffi.mi_iset_add s val
 iset_has s val = ffi.mi_iset_has s val
 iset_remove s val = ffi.mi_iset_remove s val
 iset_clear s = ffi.mi_iset_clear s
+
+-- HashMap convenience
+hm_from_list pairs = m
+  m = ffi.mi_hm_new (len pairs)
+  dummy = fold (\_ p -> ffi.mi_hm_put m p.key p.val) 0 pairs
+
+hm_keys m = map (\i -> ffi.mi_hm_key_at m i) (range 0 (ffi.mi_hm_size m))
+
+hm_values m = map (\i -> ffi.mi_hm_val_at m i) (range 0 (ffi.mi_hm_size m))
+
+hm_to_list m = map (\i -> {key = ffi.mi_hm_key_at m i; val = ffi.mi_hm_val_at m i}) (range 0 (ffi.mi_hm_size m))
+
+hm_put_all m entries = fold (\_ p -> ffi.mi_hm_put m p.key p.val) 0 entries
+
+hm_update m key f = if (ffi.mi_hm_has m key) (ffi.mi_hm_put m key (f (ffi.mi_hm_get m key))) 0
+
+hm_merge m1 m2 = fold (\_ i -> ffi.mi_hm_put m1 (ffi.mi_hm_key_at m2 i) (ffi.mi_hm_val_at m2 i)) 0 (range 0 (ffi.mi_hm_size m2))
+
+-- Deque convenience
+deque_from_list xs = d
+  d = ffi.mi_deque_new (len xs)
+  dummy = fold (\_ x -> ffi.mi_deque_push_back d x) 0 xs
+
+deque_to_list d = map (\i -> ffi.mi_deque_get d i) (range 0 (ffi.mi_deque_size d))
+
+deque_contains d val = ffi.mi_deque_contains d val
+
+deque_reverse d = ffi.mi_deque_reverse d
+
+-- MinHeap convenience
+heap_from_list xs = h
+  h = ffi.mi_heap_new (len xs)
+  dummy = fold (\_ x -> ffi.mi_heap_push h x) 0 xs
+
+heap_push_all h xs = fold (\_ x -> ffi.mi_heap_push h x) 0 xs
+
+heap_to_sorted_list h = fold (\acc _ -> push acc (ffi.mi_heap_pop h)) [] (range 0 (ffi.mi_heap_size h))
+
+-- IntSet convenience
+iset_from_list xs = s
+  s = ffi.mi_iset_new (len xs)
+  dummy = fold (\_ x -> ffi.mi_iset_add s x) 0 xs
+
+iset_to_list s = map (\i -> ffi.mi_iset_elem_at s i) (range 0 (ffi.mi_iset_size s))
+
+iset_add_all s xs = fold (\_ x -> ffi.mi_iset_add s x) 0 xs
+
+iset_union a b = result
+  result = ffi.mi_iset_new (ffi.mi_iset_size a + ffi.mi_iset_size b)
+  d1 = fold (\_ i -> ffi.mi_iset_add result (ffi.mi_iset_elem_at a i)) 0 (range 0 (ffi.mi_iset_size a))
+  d2 = fold (\_ i -> ffi.mi_iset_add result (ffi.mi_iset_elem_at b i)) 0 (range 0 (ffi.mi_iset_size b))
+
+iset_intersection a b = result
+  result = ffi.mi_iset_new (ffi.mi_iset_size a)
+  dummy = fold (\_ i -> if (ffi.mi_iset_has b (ffi.mi_iset_elem_at a i)) (ffi.mi_iset_add result (ffi.mi_iset_elem_at a i)) 0) 0 (range 0 (ffi.mi_iset_size a))
+
+iset_difference a b = result
+  result = ffi.mi_iset_new (ffi.mi_iset_size a)
+  dummy = fold (\_ i -> if (ffi.mi_iset_has b (ffi.mi_iset_elem_at a i)) 0 (ffi.mi_iset_add result (ffi.mi_iset_elem_at a i))) 0 (range 0 (ffi.mi_iset_size a))
+
+iset_is_subset a b = fold (\acc i -> if (acc == 0) 0 (ffi.mi_iset_has b (ffi.mi_iset_elem_at a i))) 1 (range 0 (ffi.mi_iset_size a))
+
+iset_equals a b = if (ffi.mi_iset_size a == ffi.mi_iset_size b) (iset_is_subset a b) 0

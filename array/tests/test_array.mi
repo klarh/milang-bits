@@ -105,4 +105,52 @@ main world =
   arr.clear a
   check "clear" (te.eq (arr.length a) 0) world
 
+  -- from_range
+  r = arr.from_range 3 7
+  check "from_range len" (te.eq (arr.length r) 4) world
+  check "from_range 0" (te.eq (arr.get r 0) 3) world
+  check "from_range 3" (te.eq (arr.get r 3) 6) world
+
+  -- arr_take / arr_drop
+  t1 = arr.arr_take g 2
+  check "take len" (te.eq (arr.length t1) 2) world
+  check "take 0" (te.eq (arr.get t1 0) 1) world
+  d1 = arr.arr_drop g 3
+  check "drop len" (te.eq (arr.length d1) 2) world
+  check "drop 0" (te.eq (arr.get d1 0) 4) world
+
+  -- arr_any / arr_all / arr_count
+  check "any true" (te.eq (arr.arr_any (\x -> x > 3) g) 1) world
+  check "any false" (te.eq (arr.arr_any (\x -> x > 10) g) 0) world
+  check "all true" (te.eq (arr.arr_all (\x -> x > 0) g) 1) world
+  check "all false" (te.eq (arr.arr_all (\x -> x > 3) g) 0) world
+  check "count" (te.eq (arr.arr_count (\x -> x > 2) g) 3) world
+
+  -- arr_min / arr_max
+  check "min" (te.eq (arr.arr_min g) 1) world
+  check "max" (te.eq (arr.arr_max g) 5) world
+
+  -- arr_find_index
+  check "find_index found" (te.eq (arr.arr_find_index (\x -> x == 3) g) 2) world
+  check "find_index not found" (te.eq (arr.arr_find_index (\x -> x > 10) g) (0 - 1)) world
+
+  -- arr_equals
+  g2 = arr.from_list [1, 2, 3, 4, 5]
+  check "equals true" (te.eq (arr.arr_equals g g2) 1) world
+  check "equals false" (te.eq (arr.arr_equals g e) 0) world
+
+  -- arr_enumerate
+  en = arr.arr_enumerate e
+  check "enumerate len" (te.eq (len en) 3) world
+
+  -- arr_zip
+  za = arr.from_list [10, 20, 30]
+  zb = arr.from_list [1, 2]
+  zr = arr.arr_zip za zb
+  check "zip len" (te.eq (len zr) 2) world
+
+  -- arr_zip_with
+  zw = arr.arr_zip_with (\x y -> x + y) za zb
+  check "zip_with len" (te.eq (len zw) 2) world
+
   0

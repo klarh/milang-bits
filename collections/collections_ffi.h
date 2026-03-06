@@ -67,5 +67,11 @@ int mi_iset_add(MiIntSet* s, long val);
 int mi_iset_has(MiIntSet* s, long val);
 int mi_iset_remove(MiIntSet* s, long val);
 void mi_iset_clear(MiIntSet* s);
+long mi_iset_elem_at(MiIntSet* s, long idx);
+
+char* mi_hm_key_at(MiHashMap* m, long idx);
+long mi_hm_val_at(MiHashMap* m, long idx);
+long mi_deque_contains(MiDeque* d, long val);
+void mi_deque_reverse(MiDeque* d);
 
 #endif

@@ -48,3 +48,22 @@ read_bytes b n = ffi.mi_buf_read_bytes_str b n
 -- Utilities
 to_hex b = ffi.mi_buf_to_hex b
 buf_slice b start end = ffi.mi_buf_slice b start end
+
+-- Create buffer from hex string
+buf_from_hex hex = ffi.mi_buf_from_hex hex
+
+-- Compare two buffers (returns 1 if equal, 0 if not)
+buf_equals a b = ffi.mi_buf_equals a b
+
+-- Create buffer from list of byte values (u8)
+buf_from_list xs = b
+  b = ffi.mi_buf_new (len xs)
+  dummy = fold (\_ x -> ffi.mi_buf_write_u8 b x) 0 xs
+
+-- Write a list of byte values to buffer
+buf_write_list b xs = fold (\_ x -> ffi.mi_buf_write_u8 b x) 0 xs
+
+-- Create buffer from a string (UTF-8 bytes, no null terminator)
+buf_from_string s = b
+  b = ffi.mi_buf_new (len s)
+  dummy = ffi.mi_buf_write_cstring b s

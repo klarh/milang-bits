@@ -227,3 +227,26 @@ MiBuffer* mi_buf_slice(MiBuffer* b, long start, long end) {
     r->len = n;
     return r;
 }
+
+static int hex_digit(char c) {
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+    return 0;
+}
+
+MiBuffer* mi_buf_from_hex(char* hex) {
+    long slen = strlen(hex);
+    long nbytes = slen / 2;
+    MiBuffer* b = mi_buf_new(nbytes);
+    for (long i = 0; i < nbytes; i++) {
+        unsigned char val = (hex_digit(hex[2*i]) << 4) | hex_digit(hex[2*i+1]);
+        mi_buf_write_u8(b, val);
+    }
+    return b;
+}
+
+long mi_buf_equals(MiBuffer* a, MiBuffer* b) {
+    if (a->len != b->len) return 0;
+    return memcmp(a->data, b->data, a->len) == 0 ? 1 : 0;
+}

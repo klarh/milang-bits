@@ -21,5 +21,7 @@ char* mi_re_find_all(MiRegex* re, char* subject);
 char* mi_re_split(MiRegex* re, char* subject);
 
 int mi_re_is_valid(char* pattern);
+long mi_re_count(MiRegex* re, char* subject);
+char* mi_re_escape(char* str);
 
 #endif

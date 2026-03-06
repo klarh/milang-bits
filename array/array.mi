@@ -84,3 +84,50 @@ arr_sum a = arr_fold (\acc x -> acc + x) 0 a
 
 -- Array to string for display
 arr_to_string a = "[" + join ", " (map toString (to_list a)) + "]"
+
+-- Create array from integer range [start, end)
+from_range start end = result
+  a = ffi.mi_array_new (end - start)
+  dummy = fold (\_ i -> ffi.mi_array_push a i) 0 (range start end)
+  result = a
+
+-- List of {idx; val} records for each element
+arr_enumerate a = map (\i -> {idx = i; val = ffi.mi_array_get a i}) (range 0 (ffi.mi_array_len a))
+
+-- Pair elements from two arrays as list of {fst; snd} records
+arr_zip a b = map (\i -> {fst = ffi.mi_array_get a i; snd = ffi.mi_array_get b i}) (range 0 n)
+  n = if (ffi.mi_array_len a < ffi.mi_array_len b) (ffi.mi_array_len a) (ffi.mi_array_len b)
+
+-- Combine two arrays element-wise with function f
+arr_zip_with f a b = map (\i -> f (ffi.mi_array_get a i) (ffi.mi_array_get b i)) (range 0 n)
+  n = if (ffi.mi_array_len a < ffi.mi_array_len b) (ffi.mi_array_len a) (ffi.mi_array_len b)
+
+-- First n elements (new array)
+arr_take a n = ffi.mi_array_slice a 0 n
+
+-- Skip first n elements (new array)
+arr_drop a n = ffi.mi_array_slice a n (ffi.mi_array_len a)
+
+-- Does any element satisfy predicate? (returns 1 or 0)
+arr_any pred a = arr_fold (\acc x -> if (acc == 1) 1 (pred x)) 0 a
+
+-- Do all elements satisfy predicate? (returns 1 or 0)
+arr_all pred a = arr_fold (\acc x -> if (acc == 0) 0 (pred x)) 1 a
+
+-- Count elements matching predicate
+arr_count pred a = arr_fold (\acc x -> if (pred x) (acc + 1) acc) 0 a
+
+-- Minimum element (0 for empty array)
+arr_min a = arr_fold (\acc x -> if (x < acc) x acc) (ffi.mi_array_get a 0) a
+
+-- Maximum element (0 for empty array)
+arr_max a = arr_fold (\acc x -> if (x > acc) x acc) (ffi.mi_array_get a 0) a
+
+-- First index where predicate holds (-1 if none)
+arr_find_index pred a = fold (\acc i -> if (acc == neg1) (if (pred (ffi.mi_array_get a i)) i acc) acc) neg1 (range 0 (ffi.mi_array_len a))
+  neg1 = 0 - 1
+
+-- Element-wise equality check (returns 1 or 0)
+arr_equals a b = if (ffi.mi_array_len a == ffi.mi_array_len b) \
+  (fold (\acc i -> if (acc == 0) 0 (if (ffi.mi_array_get a i == ffi.mi_array_get b i) 1 0)) 1 (range 0 (ffi.mi_array_len a))) \
+  0
