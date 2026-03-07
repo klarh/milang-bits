@@ -1,0 +1,9 @@
+gui = import "../gui.mi"
+
+main world = r1
+  win = gui.init 100 100 "Depth Test"
+  n = count win 0
+  dummy = gui.quit win
+  r1 = world.io.println (toString n)
+
+count win n = if (n > 5000) n (gui.delay 1 + count win (n + 1))

@@ -81,7 +81,7 @@ arr_fold f acc a = fold (\ac i -> f ac (ffi.mi_array_get a i)) acc (range 0 (ffi
 arr_sum a = arr_fold (\acc x -> acc + x) 0 a
 
 -- Array to string for display
-arr_to_string a = "[" + join ", " (map toString (to_list a)) + "]"
+arr_to_string a = "[" + join ", " (fold (\acc x -> push acc (toString x)) [] (to_list a)) + "]"
 
 -- Create array from integer range [start, end)
 from_range start end = gc_manage result ffi.mi_array_free

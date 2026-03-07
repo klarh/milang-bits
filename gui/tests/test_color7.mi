@@ -1,0 +1,9 @@
+gui = import "../gui.mi"
+
+colors = [gui.red, gui.green, gui.blue, gui.yellow, gui.cyan]
+
+get_nth xs n = head (drop n xs)
+
+main world = r1
+  c = get_nth colors 2
+  r1 = world.io.println (toString c)
