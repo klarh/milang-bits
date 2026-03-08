@@ -137,15 +137,15 @@ try_font path rest size = result
   f = sdl.TTF_OpenFont path size
   result = if (ptr_is_null f) (find_font rest size) f.val
 
+-- Workaround: inline records containing function params to avoid compiler bug
+-- where where-clause bindings with records referencing function params become unbound
 draw_text ctx text x y size c = r
   font = load_font size
-  sc = {r = c.r; g = c.g; b = c.b; a = c.a}
-  surf = (sdl.TTF_RenderText_Blended font text sc).val
+  surf = (sdl.TTF_RenderText_Blended font text ({r = c.r; g = c.g; b = c.b; a = c.a})).val
   tex = sdl.SDL_CreateTextureFromSurface ctx.renderer surf
   sw = sdl.SDL_Surface_w surf
   sh = sdl.SDL_Surface_h surf
-  dst = rect x y sw sh
-  d1 = sdl.SDL_RenderCopy ctx.renderer tex Nothing dst
+  d1 = sdl.SDL_RenderCopy ctx.renderer tex Nothing (rect x y sw sh)
   d2 = sdl.SDL_DestroyTexture tex
   d3 = sdl.SDL_FreeSurface surf
   r = sdl.TTF_CloseFont font

@@ -67,12 +67,12 @@ to_list a = fold (\acc i -> push acc (ffi.mi_array_get a i)) [] (range 0 (ffi.mi
 -- Map: apply function to each element, return new array
 arr_map f a = gc_manage result ffi.mi_array_free
   result = ffi.mi_array_new (ffi.mi_array_len a)
-  dummy = fold (\acc i -> ffi.mi_array_push result (f (ffi.mi_array_get a i))) 0 (range 0 (ffi.mi_array_len a))
+  dummy = fold (\_ i -> ffi.mi_array_push result (f (ffi.mi_array_get a i))) 0 (range 0 (ffi.mi_array_len a))
 
 -- Filter: return new array with elements where predicate is true
 arr_filter f a = gc_manage result ffi.mi_array_free
   result = ffi.mi_array_new (ffi.mi_array_len a)
-  dummy = fold (\acc i -> if (f (ffi.mi_array_get a i)) (ffi.mi_array_push result (ffi.mi_array_get a i)) (0)) 0 (range 0 (ffi.mi_array_len a))
+  dummy = fold (\_ i -> if (f (ffi.mi_array_get a i)) (ffi.mi_array_push result (ffi.mi_array_get a i)) (0)) 0 (range 0 (ffi.mi_array_len a))
 
 -- Fold over array elements
 arr_fold f acc a = fold (\ac i -> f ac (ffi.mi_array_get a i)) acc (range 0 (ffi.mi_array_len a))

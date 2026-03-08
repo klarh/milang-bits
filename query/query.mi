@@ -16,14 +16,14 @@ select f xs = map f xs
 -- Helpers for order_by (non-recursive pad to avoid module recursion crash)
 zeros = "0000000000000000000000000000000000000000"
 pad n = (slice zeros 0 (10 - len (toString n))) + toString n
-get_at xs i = fromMaybe 0 (head (drop i xs))
+get_at xs i = default 0 (head (drop i xs))
 
 -- Sort by a key function (ascending)
 -- Strategy: encode key:index as padded strings, sort strings, extract by index
 order_by key xs = ob_impl key xs (len xs)
 ob_impl key xs n = ob_extract xs (sort (ob_keyed key xs (range 0 n)))
 ob_keyed key xs indices = map (\i -> pad (key (get_at xs i)) + ":" + pad i) indices
-ob_extract xs sorted = map (\s -> get_at xs (fromMaybe 0 (toInt (slice s 11 21)))) sorted
+ob_extract xs sorted = map (\s -> get_at xs (default 0 (toInt (slice s 11 21)))) sorted
 
 -- Sort descending by key
 order_by_desc key xs = reverse (order_by key xs)
@@ -53,10 +53,10 @@ sum_of xs = fold (\acc x -> acc + x) 0 xs
 avg_of xs = sum_of xs / len xs
 
 -- Minimum value
-min_of xs = fold (\acc x -> if (x < acc) (x) (acc)) (fromMaybe 0 (head xs)) (fromMaybe [] (tail xs))
+min_of xs = fold (\acc x -> if (x < acc) (x) (acc)) (default 0 (head xs)) (default [] (tail xs))
 
 -- Maximum value
-max_of xs = fold (\acc x -> if (x > acc) (x) (acc)) (fromMaybe 0 (head xs)) (fromMaybe [] (tail xs))
+max_of xs = fold (\acc x -> if (x > acc) (x) (acc)) (default 0 (head xs)) (default [] (tail xs))
 
 -- Flat map
 flat_map f xs = flatMap f xs
@@ -77,7 +77,7 @@ all_ pred xs = all pred xs
 partition pred xs = [filter pred xs, filter (\x -> if (pred x) (0) (1)) xs]
 
 -- Chunk: split list into sublists of size n
-last_chunk acc = fromMaybe [] (head (reverse acc))
+last_chunk acc = default [] (head (reverse acc))
 ch_step n acc x = if (len acc == 0) ([[x]]) (ch_try n acc x)
 ch_try n acc x = if (len (last_chunk acc) < n) (ch_append acc x) (push acc [x])
 ch_append acc x = push (take (len acc - 1) acc) (push (last_chunk acc) x)

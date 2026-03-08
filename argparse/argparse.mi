@@ -20,9 +20,12 @@ toString val = val ->
   ParseOk = "Ok " + toString val.options + " " + toString val.args
   ParseErr = "Error: " + val.message
 
--- Lookup helpers (use filter+head to avoid recursion — recursive fns can't be imported)
-find_by_long specs name = head (filter (\s -> s.long == name) specs)
-find_by_short specs ch = head (filter (\s -> s.short == ch) specs)
+-- Lookup helpers (returns list of matching specs, empty if not found)
+find_by_long specs name = filter (\s -> s.long == name) specs
+find_by_short specs ch = filter (\s -> s.short == ch) specs
+
+-- Sentinel for "no spec found"
+no_spec = {short = ""; long = ""; kind = ""; default = 0; help = ""}
 
 starts_with s prefix = (indexOf s prefix) == 0
 
@@ -45,33 +48,31 @@ push_arg acc tok = set_args acc (push acc.args tok)
 apply_pending acc tok = set_opt_val acc acc.pending tok
 
 -- Handle --long=value
-apply_found_eq found val acc = found ->
-  Nothing = acc
-  Just = set_opt_val acc found.val.long val
-
-apply_long_eq acc tok specs = \
-  apply_found_eq \
-    (find_by_long specs (slice tok 2 (indexOf tok "="))) \
-    (slice tok ((indexOf tok "=") + 1) (len tok)) acc
+apply_long_eq acc tok specs = result
+  name = slice tok 2 (indexOf tok "=")
+  val = slice tok ((indexOf tok "=") + 1) (len tok)
+  matches = find_by_long specs name
+  found = default no_spec (head matches)
+  result = if (len matches == 0) (acc) (set_opt_val acc found.long val)
 
 -- Handle --long (flag or set pending for opt)
-apply_long_noeq_found found tok acc = found ->
-  Nothing = push_arg acc tok
-  Just = if (found.val.kind == "opt") (set_pending acc found.val.long) (set_opt_val acc found.val.long 1)
-
-apply_long_noeq acc tok specs = \
-  apply_long_noeq_found (find_by_long specs (slice tok 2 (len tok))) tok acc
+apply_long_noeq acc tok specs = result
+  name = slice tok 2 (len tok)
+  matches = find_by_long specs name
+  found = default no_spec (head matches)
+  result = if (len matches == 0) (push_arg acc tok) \
+    (if (found.kind == "opt") (set_pending acc found.long) (set_opt_val acc found.long 1))
 
 apply_long acc tok specs = \
   if ((indexOf tok "=") >= 0) (apply_long_eq acc tok specs) (apply_long_noeq acc tok specs)
 
 -- Handle -s (short flag or set pending for opt)
-apply_short_found found tok acc = found ->
-  Nothing = push_arg acc tok
-  Just = if (found.val.kind == "opt") (set_pending acc found.val.long) (set_opt_val acc found.val.long 1)
-
-apply_short acc tok specs = \
-  apply_short_found (find_by_short specs (slice tok 1 (len tok))) tok acc
+apply_short acc tok specs = result
+  ch = slice tok 1 (len tok)
+  matches = find_by_short specs ch
+  found = default no_spec (head matches)
+  result = if (len matches == 0) (push_arg acc tok) \
+    (if (found.kind == "opt") (set_pending acc found.long) (set_opt_val acc found.long 1))
 
 -- Token classifier for fold
 classify_token specs acc tok = \

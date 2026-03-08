@@ -27,12 +27,12 @@ main world =
 
   -- freq count
   fs = q.frequencies ["a", "b", "a", "c", "a"]
-  f_a = fromMaybe ({val = ""; count = 0}) (head (filter (\f -> f.val == "a") fs))
+  f_a = default ({val = ""; count = 0}) (head (filter (\f -> f.val == "a") fs))
   check "freq count a" (toString f_a.count) "3" world
 
   -- order_by with records
   people = [({name = "c"; age = 30}), ({name = "a"; age = 20}), ({name = "b"; age = 40})]
   sorted = q.order_by (\p -> p.age) people
-  check "order records" (toString (fromMaybe ({name = ""; age = 0}) (head sorted)).name) "a" world
+  check "order records" (toString (default ({name = ""; age = 0}) (head sorted)).name) "a" world
 
   0

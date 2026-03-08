@@ -9,8 +9,8 @@ check label got expected world = \
 main world =
   -- partition
   parts = q.partition (\x -> x > 3) [1, 5, 2, 8, 3]
-  check "partition match" (toString (fromMaybe [] (head parts))) "[5, 8]" world
-  check "partition rest" (toString (fromMaybe [] (head (fromMaybe [] (tail parts))))) "[1, 2, 3]" world
+  check "partition match" (toString (default [] (head parts))) "[5, 8]" world
+  check "partition rest" (toString (default [] (head (default [] (tail parts))))) "[1, 2, 3]" world
 
   -- chunk
   check "chunk 2" (toString (q.chunk 2 [1, 2, 3, 4, 5])) "[[1, 2], [3, 4], [5]]" world
@@ -23,8 +23,8 @@ main world =
   -- group_by
   gs = q.group_by (\x -> x % 2) [1, 2, 3, 4, 5]
   check "group_by len" (toString (len gs)) "2" world
-  check "group_by odd" (toString (fromMaybe [] (head gs)).items) "[1, 3, 5]" world
-  check "group_by even" (toString (fromMaybe [] (head (fromMaybe [] (tail gs)))).items) "[2, 4]" world
+  check "group_by odd" (toString (default [] (head gs)).items) "[1, 3, 5]" world
+  check "group_by even" (toString (default [] (head (default [] (tail gs)))).items) "[2, 4]" world
 
   -- frequencies
   fs = q.frequencies [1, 2, 1, 3, 1, 2]

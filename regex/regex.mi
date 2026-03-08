@@ -14,7 +14,7 @@ re_compile pat = gc_manage (ffi.mi_re_compile pat) ffi.mi_re_free
 re_test re subject = ffi.mi_re_test re subject
 
 -- Get the first match as a string (empty string if no match)
-re_match re subject = ffi.mi_re_match re subject
+re_match re subject = default "" (ffi.mi_re_match re subject)
 
 -- Get the start position of first match (-1 if no match)
 re_match_start re subject = ffi.mi_re_match_start re subject
@@ -23,22 +23,22 @@ re_match_start re subject = ffi.mi_re_match_start re subject
 re_match_len re subject = ffi.mi_re_match_len re subject
 
 -- Get a capture group (0 = full match, 1+ = groups)
-re_capture re subject group = ffi.mi_re_capture re subject group
+re_capture re subject group = default "" (ffi.mi_re_capture re subject group)
 
 -- Get number of capture groups matched
 re_capture_count re subject = ffi.mi_re_capture_count re subject
 
 -- Replace first match
-re_replace re subject replacement = ffi.mi_re_replace re subject replacement
+re_replace re subject replacement = default subject (ffi.mi_re_replace re subject replacement)
 
 -- Replace all matches
-re_replace_all re subject replacement = ffi.mi_re_replace_all re subject replacement
+re_replace_all re subject replacement = default subject (ffi.mi_re_replace_all re subject replacement)
 
 -- Find all matches (returned as newline-separated string)
-re_find_all re subject = ffi.mi_re_find_all re subject
+re_find_all re subject = default "" (ffi.mi_re_find_all re subject)
 
 -- Split by pattern (returned as newline-separated string)
-re_split re subject = ffi.mi_re_split re subject
+re_split re subject = default "" (ffi.mi_re_split re subject)
 
 -- Check if a pattern is valid (returns 0 or 1)
 re_is_valid pat = ffi.mi_re_is_valid pat
@@ -50,7 +50,7 @@ to_list result = split result "|"
 re_count re subject = ffi.mi_re_count re subject
 
 -- Escape regex metacharacters in a literal string
-re_escape str = ffi.mi_re_escape str
+re_escape str = default str (ffi.mi_re_escape str)
 
 -- Get all capture groups as a list of strings
-re_capture_all re subject = map (\i -> ffi.mi_re_capture re subject i) (range 0 (ffi.mi_re_capture_count re subject))
+re_capture_all re subject = map (\i -> default "" (ffi.mi_re_capture re subject i)) (range 0 (ffi.mi_re_capture_count re subject))
