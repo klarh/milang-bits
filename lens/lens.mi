@@ -7,18 +7,13 @@
 --   get : record -> value
 --   set : record -> value -> record
 
--- Unwrap a Maybe value with a default
-unwrap maybe dflt = maybe ->
-  Just x = x
-  Nothing = dflt
-
 -- Create a lens for a field name
 -- Uses getField (returns Maybe) and unwraps with default 0
-field_get name r = unwrap (getField r name 0) 0
+field_get name r = default 0 (getField r name 0)
 field name = {get = field_get name; set = (\r v -> setField r name v)}
 
 -- Create a lens with a custom default for missing fields
-field_default name dflt = {get = (\r -> unwrap (getField r name 0) dflt); \
+field_default name dflt = {get = (\r -> default dflt (getField r name 0)); \
   set = (\r v -> setField r name v)}
 
 -- Compose two lenses: outer.inner
@@ -50,12 +45,10 @@ pair l1 l2 = {get = (\r -> [l1.get r, l2.get r]); \
 mapped f lens = {get = (\r -> f (lens.get r)); set = lens.set}
 
 -- Lens for first element of a list
-first_get xs = fold (\acc x -> if (acc == -99999) (x) (acc)) (-99999) (take 1 xs)
-first_lens = {get = first_get; set = (\xs v -> push [v] (drop 1 xs))}
+first_lens = {get = (\xs -> default 0 (head xs)); set = (\xs v -> push [v] (drop 1 xs))}
 
 -- Lens for last element of a list
-last_get xs = fold (\acc x -> x) 0 xs
-last_lens = {get = last_get; set = (\xs v -> xs)}
+last_lens = {get = (\xs -> default 0 (last xs)); set = (\xs v -> xs)}
 
 -- Path lens: access nested fields via list of names
 -- path_lens ["a", "b", "c"] accesses r.a.b.c

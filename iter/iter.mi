@@ -52,11 +52,7 @@ inter_seed = {items = []; first = 1}
 intersperse sep xs = get_items (fold (inter_step sep) inter_seed xs)
 
 -- zip_with: combine two lists element-wise with a function
-head_unsafe xs = xs ->
-  [x, ...rest] = x
-tail_unsafe xs = xs ->
-  [x, ...rest] = rest
-zip_with f xs ys = map (\pair -> f (head_unsafe pair) (head_unsafe (tail_unsafe pair))) (zip xs ys)
+zip_with f xs ys = map (\pair -> f (default 0 (head pair)) (default 0 (at pair 1))) (zip xs ys)
 
 -- count: count elements matching predicate
 count pred xs = fold (\acc x -> if (pred x) (acc + 1) (acc)) 0 xs

@@ -22,8 +22,6 @@ pow base exp = fold (\acc x -> acc * base) 1 (range 0 exp)
 sum_range a b = sum (range a (b + 1))
 product_range a b = product (range a (b + 1))
 
--- List numeric utilities (uses unsafe_head: only call on non-empty lists)
-unsafe_head xs = xs ->
-  [x, ...rest] = x
-min_list xs = fold min (unsafe_head xs) xs
-max_list xs = fold max (unsafe_head xs) xs
+-- List numeric utilities
+min_list xs = fold min (default 0 (head xs)) xs
+max_list xs = fold max (default 0 (head xs)) xs

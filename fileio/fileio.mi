@@ -40,8 +40,7 @@ read_lines :~ [fs.read]
 read_lines path world = split (read_file path world) "\n"
 
 -- Join strings with newlines
-jl_step acc x = if (acc == "") (toString x) (acc + "\n" + toString x)
-join_lines xs = fold jl_step "" xs
+join_lines xs = join "\n" (map toString xs)
 
 -- Write list of strings as lines to file
 write_lines :~ [fs.write]

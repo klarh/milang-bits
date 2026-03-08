@@ -86,11 +86,7 @@ is_empty g = len g.edges == 0
 -- Build graph from node list and edge pair list
 -- from_edges ["a", "b", "c"] [["a", "b"], ["b", "c"]]
 fe_node_step acc n = add_node acc n
-fe_edge_step acc pair = add_edge acc (head_of pair) (second_of pair)
-head_of xs = xs ->
-  [x, ...rest] = x
-second_of xs = xs ->
-  [x, y, ...rest] = y
+fe_edge_step acc pair = add_edge acc (default "" (head pair)) (default "" (at pair 1))
 
 from_edges nodes edge_pairs = \
   fold fe_edge_step (fold fe_node_step empty nodes) edge_pairs

@@ -38,9 +38,7 @@ json_val v = \
   (json_string (toString v)))))
 
 -- Unwrap Maybe from getField
-unwrap_just v = v ->
-  Just x = x
-  Nothing = ""
+unwrap_just v = default "" v
 
 -- Build JSON object from flat record
 jf_step rec acc name = \
