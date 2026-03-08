@@ -1,0 +1,16 @@
+sdl = import "../sdl.mi"
+
+main world = r1
+  win = sdl.init 400 300 "Animation"
+  dummy = anim win 0
+  dummy2 = sdl.quit win
+  r1 = world.io.println "done"
+
+anim win frame = if (frame > 200) 0 (draw_frame win frame)
+
+draw_frame win frame = anim win (frame + 1)
+  x = frame * 2
+  d1 = sdl.clear win sdl.black
+  d2 = sdl.fill_rect win (sdl.rect x 100 30 30) sdl.red
+  d3 = sdl.present win
+  d4 = sdl.delay 16

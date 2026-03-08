@@ -1,0 +1,30 @@
+sdl = import "../sdl.mi"
+
+main world = r1
+  win = sdl.init 640 480 "milang GUI - Bouncing Ball"
+  dummy = loop win 320 240 3 2 0
+  dummy2 = sdl.quit win
+  r1 = world.io.println "Demo finished"
+
+loop win x y dx dy ci = if (drain_quit win > 0) 0 (render win x y dx dy ci)
+
+render win x y dx dy ci = loop win nx ny ndx ndy nci
+  d1 = sdl.clear win sdl.black
+  d2 = sdl.fill_rect win (sdl.rect (x - 10) (y - 10) 20 20) sdl.red
+  d3 = sdl.draw_rect win (sdl.rect 0 0 640 480) sdl.white
+  d4 = sdl.draw_text win "Press ESC to quit" 10 10 16 sdl.white
+  d5 = sdl.present win
+  d6 = sdl.delay 16
+  hx = if (x + dx < 10) 1 (if (x + dx > 630) 1 0)
+  hy = if (y + dy < 10) 1 (if (y + dy > 470) 1 0)
+  ndx = if (hx > 0) (0 - dx) dx
+  ndy = if (hy > 0) (0 - dy) dy
+  nx = x + ndx
+  ny = y + ndy
+  nci = ci + hx + hy
+
+drain_quit win = drain_check win 0
+
+drain_check win found = if (sdl.poll_event win < 1) found (drain_check win (if (found > 0) 1 (is_quit win)))
+
+is_quit win = if (sdl.event_type win == sdl.evt_quit) 1 (if (sdl.event_type win == sdl.evt_keydown) (if (sdl.event_key win == sdl.key_escape) 1 0) 0)

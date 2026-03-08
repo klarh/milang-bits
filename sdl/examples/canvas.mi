@@ -1,0 +1,44 @@
+sdl = import "../sdl.mi"
+
+main world = r1
+  win = sdl.init 640 480 "milang Drawing Canvas"
+  canvas = sdl.create_canvas win 640 480
+  d1 = sdl.canvas_target win canvas
+  d2 = sdl.clear win sdl.white
+  d3 = sdl.draw_text win "Click to draw, Space=clear, ESC=quit" 10 10 16 sdl.gray
+  d4 = sdl.screen_target win
+  dummy = draw_loop win canvas 0
+  dummy2 = sdl.quit win
+  r1 = world.io.println "Canvas closed"
+
+draw_loop win canvas drawing = idle_or_handle win canvas drawing (sdl.poll_event win)
+
+idle_or_handle win canvas drawing ev = if (ev < 1) (idle win canvas drawing) (handle_event win canvas drawing)
+
+idle win canvas drawing = draw_loop win canvas drawing
+  d1 = sdl.clear win sdl.black
+  d2 = sdl.draw_canvas win canvas
+  d3 = sdl.present win
+  d4 = sdl.delay 16
+
+handle_event win canvas drawing = dispatch win canvas drawing (sdl.event_type win)
+
+dispatch win canvas drawing t = if (t == sdl.evt_quit) 0 (if (t == sdl.evt_keydown) (handle_key win canvas drawing) (if (t == sdl.evt_mousedown) (draw_loop win canvas 1) (if (t == sdl.evt_mouseup) (draw_loop win canvas 0) (if (t == sdl.evt_mousemotion) (handle_motion win canvas drawing) (draw_loop win canvas drawing)))))
+
+handle_key win canvas drawing = dispatch_key win canvas drawing (sdl.event_key win)
+
+dispatch_key win canvas drawing k = if (k == sdl.key_escape) 0 (if (k == sdl.key_space) (do_clear win canvas drawing) (draw_loop win canvas drawing))
+
+do_clear win canvas drawing = draw_loop win canvas drawing
+  d1 = sdl.canvas_target win canvas
+  d2 = sdl.clear win sdl.white
+  d3 = sdl.screen_target win
+
+handle_motion win canvas drawing = if (drawing > 0) (do_paint win canvas) (draw_loop win canvas drawing)
+
+do_paint win canvas = draw_loop win canvas 1
+  mx = sdl.mouse_x win
+  my = sdl.mouse_y win
+  d1 = sdl.canvas_target win canvas
+  d2 = sdl.fill_rect win (sdl.rect (mx - 3) (my - 3) 6 6) sdl.black
+  d3 = sdl.screen_target win

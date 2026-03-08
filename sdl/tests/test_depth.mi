@@ -1,0 +1,9 @@
+sdl = import "../sdl.mi"
+
+main world = r1
+  win = sdl.init 100 100 "Depth Test"
+  n = count win 0
+  dummy = sdl.quit win
+  r1 = world.io.println (toString n)
+
+count win n = if (n > 5000) n (sdl.delay 1 + count win (n + 1))

@@ -1,6 +1,6 @@
-gui = import "../gui.mi"
+sdl = import "../sdl.mi"
 
-colors = [gui.red, gui.green, gui.blue, gui.yellow, gui.cyan]
+colors = [sdl.red, sdl.green, sdl.blue, sdl.yellow, sdl.cyan]
 
 get_nth xs n = head (drop n xs)
 

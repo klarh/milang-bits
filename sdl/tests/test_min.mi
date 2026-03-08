@@ -1,0 +1,11 @@
+sdl = import "../sdl.mi"
+
+main world = r1
+  win = sdl.init 400 300 "Test"
+  c = sdl.red
+  d1 = sdl.clear win sdl.black
+  d2 = sdl.fill_rect win (sdl.rect 50 50 100 80) c
+  d3 = sdl.present win
+  d4 = sdl.delay 2000
+  d5 = sdl.quit win
+  r1 = world.io.println "done"
