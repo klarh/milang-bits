@@ -1,0 +1,14 @@
+-- Property-based tests for lens module
+hyp = import "../../testing/hypothesis.mi"
+l = import "../lens.mi"
+
+mk_x v = {x = v}
+
+main world =
+  world.io.println (hyp.check "get-set" 50 42 (hyp.gen_int 0 100) (\v -> l.view (l.field "x") (l.set (l.field "x") (mk_x 0) v) == v))
+  world.io.println (hyp.check "set-get" 50 43 (hyp.gen_int 0 100) (\v -> l.view (l.field "x") (l.set (l.field "x") (mk_x v) (l.view (l.field "x") (mk_x v))) == v))
+  world.io.println (hyp.check "set-set" 50 44 (hyp.gen_pair (hyp.gen_int 0 100) (hyp.gen_int 0 100)) (\p -> l.view (l.field "x") (l.set (l.field "x") (l.set (l.field "x") (mk_x 0) p.fst) p.snd) == p.snd))
+  world.io.println (hyp.check "over applies function" 50 45 (hyp.gen_int 0 100) (\v -> l.view (l.field "x") (l.over (l.field "x") (\n -> n + 10) (mk_x v)) == v + 10))
+  world.io.println (hyp.check "over identity is no-op" 50 46 (hyp.gen_int 0 100) (\v -> l.view (l.field "x") (l.over (l.field "x") (\n -> n) (mk_x v)) == v))
+  world.io.println (hyp.check "constant lens ignores record" 50 47 (hyp.gen_int 0 100) (\v -> l.view (l.constant 42) (mk_x v) == 42))
+  0

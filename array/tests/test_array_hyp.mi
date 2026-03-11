@@ -1,0 +1,33 @@
+-- Property-based tests for the array library using hypothesis framework
+hyp = import "../../testing/hypothesis.mi"
+arr = import "../array.mi"
+
+-- Helper: check sort_mut produces a sorted array
+prop_sorted xs = fold (\acc i -> if (acc == 0) 0 (if (arr.get a i >= arr.get a (i - 1)) 1 0)) 1 (range 1 (arr.length a))
+  a = arr.from_list xs
+  dummy = arr.sort_mut a
+
+-- Helper: check sort preserves the sum of elements
+prop_sort_sum xs = arr.arr_sum a == fold (\acc x -> acc + x) 0 xs
+  a = arr.from_list xs
+  dummy = arr.sort_mut a
+
+-- Helper: check copy produces an equal array
+prop_copy xs = arr.arr_equals (arr.copy a) a == 1
+  a = arr.from_list xs
+
+-- Helper: check push_back increases length by 1
+prop_push xs = arr.length a == len xs + 1
+  a = arr.from_list xs
+  dummy = arr.push_back a 42
+
+main world =
+  world.io.println (hyp.check "to_list . from_list == id" 50 42 (hyp.gen_list (hyp.gen_int 0 100) 0 8) (\xs -> toString (arr.to_list (arr.from_list xs)) == toString xs))
+  world.io.println (hyp.check "length matches list len" 50 43 (hyp.gen_list (hyp.gen_int 0 100) 0 8) (\xs -> arr.length (arr.from_list xs) == len xs))
+  world.io.println (hyp.check "arr_sum matches fold" 50 44 (hyp.gen_list (hyp.gen_int 0 100) 0 8) (\xs -> arr.arr_sum (arr.from_list xs) == fold (\acc x -> acc + x) 0 xs))
+  world.io.println (hyp.check "sort produces sorted" 50 45 (hyp.gen_list (hyp.gen_int 0 100) 0 8) prop_sorted)
+  world.io.println (hyp.check "sort preserves sum" 50 46 (hyp.gen_list (hyp.gen_int 0 100) 0 8) prop_sort_sum)
+  world.io.println (hyp.check "copy produces equal" 50 47 (hyp.gen_list (hyp.gen_int 0 100) 0 8) prop_copy)
+  world.io.println (hyp.check "from_range length" 50 48 (hyp.gen_pair (hyp.gen_int 0 50) (hyp.gen_int 0 50)) (\p -> arr.length (arr.from_range p.fst (p.fst + p.snd)) == p.snd))
+  world.io.println (hyp.check "push_back adds one" 50 49 (hyp.gen_list (hyp.gen_int 0 100) 0 8) prop_push)
+  0

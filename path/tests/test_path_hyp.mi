@@ -1,0 +1,14 @@
+-- Property-based tests for path module
+hyp = import "../../testing/hypothesis.mi"
+p = import "../path.mi"
+
+main world =
+  world.io.println (hyp.check "absolute path is absolute" 100 42 (hyp.gen_string 1 8) (\s -> p.is_absolute ("/" + s)))
+  world.io.println (hyp.check "plain string is relative" 100 43 (hyp.gen_string 1 8) (\s -> p.is_relative s))
+  world.io.println (hyp.check "basename of simple name is itself" 100 44 (hyp.gen_string 1 8) (\s -> p.basename s == s))
+  world.io.println (hyp.check "join then basename" 50 45 (hyp.gen_pair (hyp.gen_string 1 5) (hyp.gen_string 1 5)) (\pair -> p.basename (p.join_path pair.fst pair.snd) == pair.snd))
+  world.io.println (hyp.check "normalize idempotent" 100 46 (hyp.gen_string 1 8) (\s -> p.normalize (p.normalize (s + "/")) == p.normalize (s + "/")))
+  world.io.println (hyp.check "stem plus ext equals basename" 50 47 (hyp.gen_pair (hyp.gen_string 1 4) (hyp.gen_string 1 3)) (\pair -> toString (p.stem (pair.fst + "." + pair.snd) + p.extension (pair.fst + "." + pair.snd)) == toString (pair.fst + "." + pair.snd)))
+  world.io.println (hyp.check "components of join has two parts" 50 48 (hyp.gen_pair (hyp.gen_string 1 5) (hyp.gen_string 1 5)) (\pair -> len (p.components (p.join_path pair.fst pair.snd)) == 2))
+  world.io.println (hyp.check "dirname of join" 50 49 (hyp.gen_pair (hyp.gen_string 1 5) (hyp.gen_string 1 5)) (\pair -> p.dirname (p.join_path pair.fst pair.snd) == pair.fst))
+  0

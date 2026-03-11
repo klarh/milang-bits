@@ -1,0 +1,9 @@
+-- Benchmark: Mandelbrot set — fixed-point integer arithmetic (scale=1024)
+-- Uses fixed-point to avoid native codegen float TCO bugs
+-- 1.0 = 1024, grid: x in [-2048, 1024), y in [-1536, 1536)
+
+go zr zi i max cx cy = if (i >= max) max (if (zr * zr / 1024 + zi * zi / 1024 > 4096) i (go (zr * zr / 1024 - zi * zi / 1024 + cx) (2 * zr * zi / 1024 + cy) (i + 1) max cx cy))
+
+scan cx cy total px py rows cols max dx dy = if (py >= rows) total (if (px >= cols) (scan (0 - 2048) (cy + dy) total 0 (py + 1) rows cols max dx dy) (scan (cx + dx) cy (total + go 0 0 0 max cx cy) (px + 1) py rows cols max dx dy))
+
+main world = world.io.println (toString (scan (0 - 2048) (0 - 1536) 0 0 0 200 200 100 15 15))

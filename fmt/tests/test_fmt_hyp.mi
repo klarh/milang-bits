@@ -1,0 +1,14 @@
+-- Property-based tests for fmt module
+hyp = import "../../testing/hypothesis.mi"
+f = import "../fmt.mi"
+
+main world =
+  world.io.println (hyp.check "pad_left length >= width" 100 42 (hyp.gen_pair (hyp.gen_string 1 5) (hyp.gen_int 1 10)) (\pair -> len (f.pad_left pair.fst pair.snd " ") >= pair.snd))
+  world.io.println (hyp.check "pad_right length >= width" 100 43 (hyp.gen_pair (hyp.gen_string 1 5) (hyp.gen_int 1 10)) (\pair -> len (f.pad_right pair.fst pair.snd " ") >= pair.snd))
+  world.io.println (hyp.check "quote starts with dquote" 100 44 (hyp.gen_string 1 8) (\s -> startsWith (f.quote s) "\""))
+  world.io.println (hyp.check "quote ends with dquote" 100 45 (hyp.gen_string 1 8) (\s -> endsWith (f.quote s) "\""))
+  world.io.println (hyp.check "parens starts with open" 100 46 (hyp.gen_string 1 8) (\s -> startsWith (f.parens s) "("))
+  world.io.println (hyp.check "parens ends with close" 100 47 (hyp.gen_string 1 8) (\s -> endsWith (f.parens s) ")"))
+  world.io.println (hyp.check "surround starts with left" 50 48 (hyp.gen_triple (hyp.gen_string 1 3) (hyp.gen_string 1 3) (hyp.gen_string 1 5)) (\t -> startsWith (f.surround t.fst t.snd t.thd) t.fst))
+  world.io.println (hyp.check "surround ends with right" 50 49 (hyp.gen_triple (hyp.gen_string 1 3) (hyp.gen_string 1 3) (hyp.gen_string 1 5)) (\t -> endsWith (f.surround t.fst t.snd t.thd) t.snd))
+  0

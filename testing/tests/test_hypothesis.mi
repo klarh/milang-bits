@@ -1,0 +1,71 @@
+-- Tests for the hypothesis property-based testing framework
+hyp = import "../hypothesis.mi"
+
+main world =
+  -- ── Generator tests ──
+
+  g1 = hyp.gen_int 0 9 42
+  world.io.println ("gen_int [0,9]: val=" + toString g1.val + " s=" + toString g1.s)
+
+  g2 = hyp.gen_bool 42
+  world.io.println ("gen_bool: " + toString g2.val)
+
+  g3 = hyp.gen_pair (hyp.gen_int 0 99) (hyp.gen_int 0 99) 42
+  world.io.println ("gen_pair: " + toString g3.val)
+
+  g4 = hyp.gen_list (hyp.gen_int 0 9) 3 5 42
+  world.io.println ("gen_list: " + toString g4.val)
+
+  g5 = hyp.gen_string 3 8 42
+  world.io.println ("gen_string: \"" + g5.val + "\"")
+
+  g6 = hyp.gen_map (\x -> x * 2) (hyp.gen_int 1 10) 42
+  world.io.println ("gen_map (*2): " + toString g6.val)
+
+  g7 = hyp.gen_one_of ["red", "green", "blue"] 42
+  world.io.println ("gen_one_of: " + toString g7.val)
+
+  -- ── Shrinker tests ──
+  world.io.println ("shrink 5:  " + toString (hyp.shrink_int 5))
+  world.io.println ("shrink 0:  " + toString (hyp.shrink_int 0))
+  world.io.println ("shrink -3: " + toString (hyp.shrink_int (0 - 3)))
+
+  -- ── Property tests: should PASS ──
+
+  world.io.println (hyp.check "addition commutative" 100 42
+    (hyp.gen_pair (hyp.gen_int (0 - 100) 100) (hyp.gen_int (0 - 100) 100))
+    (\p -> p.fst + p.snd == p.snd + p.fst))
+
+  world.io.println (hyp.check "abs non-negative" 100 99
+    (hyp.gen_int (0 - 1000) 1000)
+    (\n -> if (n >= 0) 1 (if ((0 - n) >= 0) 1 0)))
+
+  world.io.println (hyp.check "push length +1" 50 77
+    (hyp.gen_list (hyp.gen_int 0 10) 0 5)
+    (\xs -> len (push xs 99) == len xs + 1))
+
+  world.io.println (hyp.check "reverse reverse = id" 50 55
+    (hyp.gen_list (hyp.gen_int 0 50) 0 8)
+    (\xs -> toString (reverse (reverse xs)) == toString xs))
+
+  world.io.println (hyp.check "map id = id" 50 33
+    (hyp.gen_list (hyp.gen_int 0 50) 0 8)
+    (\xs -> toString (map (\x -> x) xs) == toString xs))
+
+  world.io.println (hyp.check "concat lengths" 50 42
+    (hyp.gen_pair (hyp.gen_list (hyp.gen_int 0 9) 0 5) (hyp.gen_list (hyp.gen_int 0 9) 0 5))
+    (\p -> len (concat p.fst p.snd) == len p.fst + len p.snd))
+
+  world.io.println (hyp.check "multiply by 0" 100 42
+    (hyp.gen_int (0 - 1000) 1000)
+    (\n -> n * 0 == 0))
+
+  -- ── Property tests: expected FAIL (verify shrinking works) ──
+
+  ef1 = (hyp.check_with "all < 50" 100 42 (hyp.gen_int 0 100) (\n -> n < 50) hyp.shrink_int)
+  world.io.println (if (startsWith ef1 "FAIL:") ("PASS: shrinking finds < 50 counterexample") ("UNEXPECTED PASS: all < 50 should have failed"))
+
+  ef2 = (hyp.check_with "list always short" 100 12345 (hyp.gen_list (hyp.gen_int 0 10) 0 10) (\xs -> len xs < 3) hyp.shrink_list)
+  world.io.println (if (startsWith ef2 "FAIL:") ("PASS: shrinking finds long list counterexample") ("UNEXPECTED PASS: list always short should have failed"))
+
+  0

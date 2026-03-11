@@ -1,0 +1,125 @@
+-- hypothesis: property-based testing for milang
+--
+-- Inspired by Python's Hypothesis. Provides random test case generation,
+-- property checking, and automatic shrinking of failing inputs.
+--
+-- Usage:
+--   hyp = import "hypothesis.mi"
+--   main world =
+--     world.io.println (hyp.check "commutative" 100 42
+--       (hyp.gen_pair (hyp.gen_int (0 - 100) 100) (hyp.gen_int (0 - 100) 100))
+--       (\p -> p.fst + p.snd == p.snd + p.fst))
+--     0
+--
+-- Generators produce {val; s} records (value + next seed).
+-- Properties are functions: value -> Bool (1=pass, 0=fail).
+-- check/check_with return result strings (like testing.mi).
+
+m = import "../math/math.mi"
+
+-- ── RNG (Park-Miller LCG, period 2^31-2) ──
+
+next_seed s = s * 48271 % 2147483647
+
+-- ── Core generators ──
+-- Each generator: seed -> {val; s}
+
+gen_int lo hi seed = {val = gv; s = gs}
+  gs = next_seed seed
+  gv = lo + m.abs gs % (hi - lo + 1)
+
+gen_bool seed = {val = bv; s = bs}
+  bs = next_seed seed
+  bv = bs % 2
+
+gen_char seed = {val = cv; s = cs}
+  cs = next_seed seed
+  cv = default "a" (charAt "abcdefghijklmnopqrstuvwxyz" (m.abs cs % 26))
+
+-- gen_int_sized: generate int whose magnitude scales with size parameter
+gen_int_sized size seed = gen_int (0 - size) size seed
+
+-- ── Generator combinators ──
+
+-- gen_pair: generate a pair of values
+gen_pair ga gb seed = {val = {fst = pa.val; snd = pb.val}; s = pb.s}
+  pa = ga seed
+  pb = gb pa.s
+
+-- gen_triple: generate a triple
+gen_triple ga gb gc seed = {val = {fst = ta.val; snd = tb.val; thd = tc.val}; s = tc.s}
+  ta = ga seed
+  tb = gb ta.s
+  tc = gc tb.s
+
+-- gen_one_of: pick from a list of values
+gen_one_of xs seed = {val = ov; s = os}
+  os = next_seed seed
+  oi = m.abs os % len xs
+  ov = default 0 (at xs oi)
+
+-- gen_map: transform a generator's output
+gen_map f gen seed = {val = f mg.val; s = mg.s}
+  mg = gen seed
+
+-- gen_list: generate a list of values
+gen_list gen min_len max_len seed = fold (gl_step gen) (gl_seed gl_len.s) (range 0 gl_len.val)
+  gl_len = gen_int min_len max_len seed
+gl_step gen acc _ = {val = push acc.val gl_v.val; s = gl_v.s}
+  gl_v = gen acc.s
+gl_seed s = {val = []; s = s}
+
+-- gen_string: generate a string of given length range
+gen_string min_len max_len seed = {val = gs_str; s = gs_chars.s}
+  gs_chars = gen_list gen_char min_len max_len seed
+  gs_str = fold (\acc c -> acc + c) "" gs_chars.val
+
+-- ── Shrinking ──
+-- Shrinkers: value -> list of smaller candidates
+
+shrink_int n = if (n == 0) ([]) (if (n > 0) (si_pos n) (si_neg n))
+  si_pos n = if (n <= 3) (concat [0] (range 1 n)) (concat [0] (concat [n / 2] [n - 1]))
+  si_neg n = if (n >= (0 - 3)) (concat [0] (map (\x -> 0 - x) (range 1 (m.abs n)))) (concat [0] (concat [n / 2] [n + 1]))
+
+shrink_list xs = if (len xs <= 1) ([[]]) (concat [[]] (concat [default [] (tail xs)] [init xs]))
+
+shrink_pair sa sb p = concat (map (\a -> {fst = a; snd = p.snd}) (sa p.fst)) (map (\b -> {fst = p.fst; snd = b}) (sb p.snd))
+
+shrink_none _ = []
+
+-- ── Property testing engine ──
+
+-- Run a single test: returns {passed; val; s}
+run_one gen prop seed = {passed = prop ro.val; val = ro.val; s = ro.s}
+  ro = gen seed
+
+-- Try to shrink a failing input
+try_shrink prop shrink val depth = if (depth <= 0) val (find_smaller prop shrink val (shrink val) depth)
+
+find_smaller prop shrink original candidates depth = \
+  if (len candidates == 0) original \
+  (if (prop (default original (head candidates)) == 0) \
+    (try_shrink prop shrink (default original (head candidates)) (depth - 1)) \
+    (find_smaller prop shrink original (default [] (tail candidates)) depth))
+
+-- Run N tests, stop on first failure
+rs_step gen prop acc _ = if (acc.failed == 1) acc (rs_check gen prop acc)
+  rs_check gen prop acc = if (rs_r.passed) (setField (setField acc "count" (acc.count + 1)) "s" rs_r.s) (setField (setField (setField (setField acc "failed" 1) "count" (acc.count + 1)) "failing" rs_r.val) "s" rs_r.s)
+    rs_r = run_one gen prop acc.s
+rs_seed s = {count = 0; failed = 0; failing = 0; s = s}
+
+forAll gen shrink prop n seed = fold (rs_step gen prop) (rs_seed seed) (range 0 n)
+
+-- ── User-facing API ──
+-- Returns result strings (consistent with testing.mi convention).
+
+-- check_with: run property test with custom shrinker
+check_with label n seed gen prop shrink = \
+  if (cw_r.failed == 0) \
+    ("PASS: " + label + " (" + toString cw_r.count + " tests)") \
+    ("FAIL: " + label + " (after " + toString cw_r.count + " tests)\n  Failing input: " + toString cw_r.failing + "\n  Shrunk to:     " + toString cw_s)
+  cw_r = forAll gen shrink prop n seed
+  cw_s = if (cw_r.failed == 1) (try_shrink prop shrink cw_r.failing 20) (cw_r.failing)
+
+-- check: run property test without shrinking
+check label n seed gen prop = check_with label n seed gen prop shrink_none

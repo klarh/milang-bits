@@ -1,0 +1,36 @@
+-- Property-based tests for the strings library using hypothesis
+hyp = import "../../testing/hypothesis.mi"
+s = import "../strings.mi"
+
+main world =
+  -- reverse is an involution
+  world.io.println (hyp.check "reverse reverse = id" 100 42 (hyp.gen_string 0 10) (\x -> s.str_reverse (s.str_reverse x) == x))
+
+  -- reverse preserves length
+  world.io.println (hyp.check "reverse preserves length" 100 43 (hyp.gen_string 0 15) (\x -> len (s.str_reverse x) == len x))
+
+  -- chars length equals string length
+  world.io.println (hyp.check "chars length = string length" 100 44 (hyp.gen_string 0 12) (\x -> len (s.chars x) == len x))
+
+  -- take ++ drop = identity for any n >= 0
+  world.io.println (hyp.check "take ++ drop = id" 100 45 (hyp.gen_pair (hyp.gen_string 0 10) (hyp.gen_int 0 10)) (\p -> s.str_take p.snd p.fst + s.str_drop p.snd p.fst == p.fst))
+
+  -- repeat length = len(s) * n
+  world.io.println (hyp.check "repeat length" 100 46 (hyp.gen_pair (hyp.gen_string 0 5) (hyp.gen_int 0 5)) (\p -> len (s.str_repeat p.fst p.snd) == len p.fst * p.snd))
+
+  -- is_empty agrees with len == 0
+  world.io.println (hyp.check "is_empty iff len = 0" 100 47 (hyp.gen_string 0 5) (\x -> s.is_empty x == (len x == 0)))
+
+  -- capitalize preserves length
+  world.io.println (hyp.check "capitalize preserves length" 100 48 (hyp.gen_string 0 10) (\x -> len (s.capitalize x) == len x))
+
+  -- take 0 always yields empty string
+  world.io.println (hyp.check "take 0 = empty" 100 49 (hyp.gen_string 0 10) (\x -> s.str_take 0 x == ""))
+
+  -- repeat 0 always yields empty string
+  world.io.println (hyp.check "repeat 0 = empty" 100 50 (hyp.gen_string 0 10) (\x -> s.is_empty (s.str_repeat x 0)))
+
+  -- repeat 1 is identity
+  world.io.println (hyp.check "repeat 1 = id" 100 51 (hyp.gen_string 0 10) (\x -> s.str_repeat x 1 == x))
+
+  0

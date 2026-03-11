@@ -1,0 +1,36 @@
+-- Property-based tests for math library using hypothesis framework
+hyp = import "../../testing/hypothesis.mi"
+m = import "../math.mi"
+
+main world =
+  -- abs always returns a non-negative value
+  world.io.println (hyp.check "abs non-negative" 100 42 (hyp.gen_int (0 - 1000) 1000) (\n -> m.abs n >= 0))
+
+  -- abs is idempotent: abs(abs(x)) == abs(x)
+  world.io.println (hyp.check "abs idempotent" 100 43 (hyp.gen_int (0 - 1000) 1000) (\n -> m.abs (m.abs n) == m.abs n))
+
+  -- sign(x) * abs(x) reconstructs x
+  world.io.println (hyp.check "sign*abs == identity" 100 44 (hyp.gen_int (0 - 1000) 1000) (\n -> m.sign n * m.abs n == n))
+
+  -- min(a,b) <= max(a,b) for all pairs
+  world.io.println (hyp.check "min <= max" 100 45 (hyp.gen_pair (hyp.gen_int (0 - 500) 500) (hyp.gen_int (0 - 500) 500)) (\p -> m.min p.fst p.snd <= m.max p.fst p.snd))
+
+  -- clamp keeps value at or above the lower bound
+  world.io.println (hyp.check "clamp lower bound" 100 46 (hyp.gen_triple (hyp.gen_int (0 - 100) 100) (hyp.gen_int (0 - 100) 100) (hyp.gen_int (0 - 500) 500)) (\t -> m.clamp (m.min t.fst t.snd) (m.max t.fst t.snd) t.thd >= m.min t.fst t.snd))
+
+  -- clamp keeps value at or below the upper bound
+  world.io.println (hyp.check "clamp upper bound" 100 47 (hyp.gen_triple (hyp.gen_int (0 - 100) 100) (hyp.gen_int (0 - 100) 100) (hyp.gen_int (0 - 500) 500)) (\t -> m.clamp (m.min t.fst t.snd) (m.max t.fst t.snd) t.thd <= m.max t.fst t.snd))
+
+  -- is_even and is_odd are mutually exclusive
+  world.io.println (hyp.check "is_even xor is_odd" 100 48 (hyp.gen_int (0 - 1000) 1000) (\n -> m.is_even n /= m.is_odd n))
+
+  -- pow(base, 0) always equals 1
+  world.io.println (hyp.check "pow base 0 == 1" 100 49 (hyp.gen_int 1 100) (\b -> m.pow b 0 == 1))
+
+  -- min_list of a singleton list returns the element
+  world.io.println (hyp.check "min_list singleton" 100 50 (hyp.gen_int (0 - 1000) 1000) (\n -> m.min_list [n] == n))
+
+  -- max_list of a singleton list returns the element
+  world.io.println (hyp.check "max_list singleton" 100 51 (hyp.gen_int (0 - 1000) 1000) (\n -> m.max_list [n] == n))
+
+  0

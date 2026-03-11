@@ -1,0 +1,16 @@
+-- Property-based tests for the iter library
+hyp = import "../../testing/hypothesis.mi"
+it = import "../iter.mi"
+
+main world =
+  world.io.println (hyp.check "partition preserves length" 50 42 (hyp.gen_list (hyp.gen_int 0 100) 0 10) (\xs -> len (it.partition (\x -> x > 50) xs).yes + len (it.partition (\x -> x > 50) xs).no == len xs))
+  world.io.println (hyp.check "takeWhile ++ dropWhile = id" 50 43 (hyp.gen_list (hyp.gen_int 0 100) 0 10) (\xs -> toString (concat (it.takeWhile (\x -> x < 50) xs) (it.dropWhile (\x -> x < 50) xs)) == toString xs))
+  world.io.println (hyp.check "count = len partition.yes" 50 44 (hyp.gen_list (hyp.gen_int 0 100) 0 10) (\xs -> it.count (\x -> x > 30) xs == len (it.partition (\x -> x > 30) xs).yes))
+  world.io.println (hyp.check "sum_by id = fold sum" 50 45 (hyp.gen_list (hyp.gen_int 0 50) 0 8) (\xs -> it.sum_by (\x -> x) xs == fold (\a x -> a + x) 0 xs))
+  world.io.println (hyp.check "uniq idempotent" 50 46 (hyp.gen_list (hyp.gen_int 0 5) 0 10) (\xs -> toString (it.uniq (it.uniq xs)) == toString (it.uniq xs)))
+  world.io.println (hyp.check "intersperse length when len >= 2" 50 47 (hyp.gen_list (hyp.gen_int 0 50) 2 8) (\xs -> len (it.intersperse 0 xs) == (len xs) * 2 - 1))
+  world.io.println (hyp.check "span preserves length" 50 48 (hyp.gen_list (hyp.gen_int 0 100) 0 10) (\xs -> len (it.span (\x -> x < 50) xs).fst + len (it.span (\x -> x < 50) xs).snd == len xs))
+  world.io.println (hyp.check "span fst all satisfy pred" 50 49 (hyp.gen_list (hyp.gen_int 0 100) 0 10) (\xs -> it.count (\x -> x >= 50) (it.span (\x -> x < 50) xs).fst == 0))
+  world.io.println (hyp.check "takeWhile all satisfy pred" 50 50 (hyp.gen_list (hyp.gen_int 0 100) 0 10) (\xs -> it.count (\x -> x >= 50) (it.takeWhile (\x -> x < 50) xs) == 0))
+  world.io.println (hyp.check "partition yes all satisfy pred" 50 51 (hyp.gen_list (hyp.gen_int 0 100) 0 10) (\xs -> it.count (\x -> x <= 50) (it.partition (\x -> x > 50) xs).yes == 0))
+  0
