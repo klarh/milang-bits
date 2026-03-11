@@ -2,3 +2,7 @@ bugs/
 *_core
 *_core.c
 milang
+*_native
+*_native.c
+*.o
+/tmp/

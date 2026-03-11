@@ -1,0 +1,4 @@
+-- Benchmark: list pipeline (filter + map + fold) over 100k elements
+compute n = fold (\acc x -> if (x % 3 > 0) (acc + x % 97) (acc)) 0 (range 1 (n + 1))
+
+main world = world.io.println (toString (compute 100000))

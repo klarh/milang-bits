@@ -1,0 +1,8 @@
+-- Benchmark: Naive recursive Fibonacci — fib(35)
+-- Tests: function call overhead, binary recursion
+
+fib n = if (n < 2) n (fib (n - 1) + fib (n - 2))
+
+-- world.argv prevents the compiler from evaluating fib at compile time
+main world = world.io.println (toString \
+  (fib (35 + fold (\a x -> a) 0 world.argv)))

@@ -1,0 +1,8 @@
+-- Benchmark: Ackermann function — ack(3,9) = 4093
+-- Tests: deep recursion, stack management
+
+ack m n = if (m == 0) (n + 1) \
+  (if (n == 0) (ack (m - 1) 1) \
+               (ack (m - 1) (ack m (n - 1))))
+
+main world = world.io.println (toString (ack 3 9))

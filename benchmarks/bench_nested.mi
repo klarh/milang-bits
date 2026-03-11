@@ -1,0 +1,6 @@
+-- Benchmark: nested loop — sum of (i * j % 1000) for i,j in 1..500
+inner i n = fold (\acc j -> acc + i * j % 1000) 0 (range 1 (n + 1))
+
+compute n = fold (\acc i -> acc + inner i n) 0 (range 1 (n + 1))
+
+main world = world.io.println (toString (compute 500))

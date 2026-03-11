@@ -1,0 +1,5 @@
+-- Benchmark: total Collatz sequence steps for 1..100,000
+collatz n acc = if (n < 2) acc (collatz (if (n % 2 == 0) (n / 2) (3 * n + 1)) (acc + 1))
+
+main world = world.io.println (toString result)
+  result = fold (\acc i -> acc + collatz i 0) 0 (range 1 100001)

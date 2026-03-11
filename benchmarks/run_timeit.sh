@@ -33,7 +33,7 @@ printf "${BOLD}%-16s %11s %11s %11s %11s${RESET}\n" \
 printf "%-16s %11s %11s %11s %11s\n" \
   "────────────────" "───────────" "───────────" "───────────" "────────────"
 
-for bench in bench_nested bench_primes bench_collatz bench_list bench_mandelbrot; do
+for bench in bench_nested bench_primes bench_collatz bench_list bench_mandelbrot bench_fibonacci bench_ackermann bench_sort bench_tree bench_strings bench_closure; do
   [ -f "${bench}.mi" ] || continue
 
   # milang: pre-compiled binary

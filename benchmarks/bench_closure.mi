@@ -1,0 +1,16 @@
+-- Benchmark: Closure creation and application
+-- Tests: higher-order function overhead, closure allocation
+
+apply_n f n x = if (n <= 0) x (apply_n f (n - 1) (f x))
+
+make_adder k = \x -> x + k
+
+build_fns n acc = if (n <= 0) acc \
+  (build_fns (n - 1) (push acc (make_adder n)))
+
+apply_all fns x = fold (\acc f -> f acc) x fns
+
+-- world.argv prevents compile-time evaluation
+main world = world.io.println (toString \
+  (apply_n (\x -> x + 1) (1000000 + fold (\a x -> a) 0 world.argv) 0 + \
+   apply_all (build_fns 10000 []) 0))

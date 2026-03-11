@@ -1,0 +1,113 @@
+-- Conway's Game of Life
+-- Click to toggle cells, drag to paint. Space=step, Enter=play/pause, C=clear, Esc=quit.
+
+sdl = import "../sdl.mi"
+arr = import "../../array/array.mi"
+
+cell_sz = 10
+cols = 64
+rows = 48
+total = cols * rows
+key_c = 99
+
+main world = r
+  d0 = world.io.println "Controls: Click=draw  Space=step  Enter=play/pause  C=clear  Esc=quit"
+  win = sdl.init (cols * cell_sz) (rows * cell_sz) "Life [Paused] Gen 0"
+  grid = make_grid total
+  buf = make_grid total
+  dummy = game_loop win grid buf 0 0
+  dummy2 = sdl.quit win
+  r = world.io.println "done"
+
+make_grid n = a
+  a = arr.new n
+  dummy = fold (\_ _ -> arr.push_back a 0) 0 (range 0 n)
+
+-- Main loop
+game_loop win grid buf gen playing = on_ev win grid buf gen playing (sdl.next_event win)
+
+on_ev win grid buf gen playing ev = if (ev.type < 1) (idle win grid buf gen playing) (dispatch win grid buf gen playing ev)
+
+-- No events: step if playing, otherwise just render
+idle win grid buf gen playing = if (playing > 0) (tick win grid buf gen) (frame win grid buf gen)
+
+tick win grid buf gen = game_loop win grid buf ngen 1
+  spf = 10
+  d1 = fold (\_ _ -> step_grid grid buf) 0 (range 0 spf)
+  ngen = gen + spf
+  d2 = render win grid
+  d3 = set_title win ngen 1
+
+frame win grid buf gen = game_loop win grid buf gen 0
+  d1 = render win grid
+  d2 = sdl.delay 16
+
+-- Event dispatch
+dispatch win grid buf gen playing ev =
+  if (ev.type == sdl.evt_quit) 0
+  (if (ev.type == sdl.evt_keydown) (on_key win grid buf gen playing ev.key)
+  (if (ev.type == sdl.evt_mousedown) (on_click win grid buf gen playing ev.mx ev.my)
+  (game_loop win grid buf gen playing)))
+
+on_key win grid buf gen playing k =
+  if (k == sdl.key_escape) 0
+  (if (k == sdl.key_space) (do_step win grid buf gen)
+  (if (k == sdl.key_return) (toggle_play win grid buf gen playing)
+  (if (k == key_c) (do_clear win grid buf gen)
+  (game_loop win grid buf gen playing))))
+
+do_step win grid buf gen = game_loop win grid buf (gen + 1) 0
+  d1 = step_grid grid buf
+  d2 = set_title win (gen + 1) 0
+
+toggle_play win grid buf gen playing = game_loop win grid buf gen np
+  np = 1 - playing
+  d = set_title win gen np
+
+do_clear win grid buf gen = game_loop win grid buf 0 0
+  d1 = fold (\_ i -> arr.set grid i 0) 0 (range 0 total)
+  d2 = set_title win 0 0
+
+on_click win grid buf gen playing mx my = game_loop win grid buf gen playing
+  cx = mx / cell_sz
+  cy = my / cell_sz
+  idx = cy * cols + cx
+  cur = arr.get grid idx
+  d = arr.set grid idx (1 - cur)
+
+-- Simulation
+step_grid grid buf = d2
+  d1 = fold (\_ i -> update_cell grid buf i) 0 (range 0 total)
+  d2 = fold (\_ i -> arr.set grid i (arr.get buf i)) 0 (range 0 total)
+
+update_cell grid buf i = arr.set buf i (next_state alive nbrs)
+  x = i % cols
+  y = i / cols
+  alive = arr.get grid i
+  nbrs = count_n grid x y
+
+count_n grid x y = c1 + c2 + c3 + c4 + c5 + c6 + c7 + c8
+  c1 = safe grid (x - 1) (y - 1)
+  c2 = safe grid x (y - 1)
+  c3 = safe grid (x + 1) (y - 1)
+  c4 = safe grid (x - 1) y
+  c5 = safe grid (x + 1) y
+  c6 = safe grid (x - 1) (y + 1)
+  c7 = safe grid x (y + 1)
+  c8 = safe grid (x + 1) (y + 1)
+
+safe grid x y = if (x < 0) 0 (if (y < 0) 0 (if (x >= cols) 0 (if (y >= rows) 0 (arr.get grid (y * cols + x)))))
+
+next_state alive n = if (alive > 0) (if (n == 2) 1 (if (n == 3) 1 0)) (if (n == 3) 1 0)
+
+-- Rendering
+render win grid = d3
+  d1 = sdl.clear win (sdl.rgb 24 24 24)
+  d2 = fold (\_ i -> draw_cell win grid i) 0 (range 0 total)
+  d3 = sdl.present win
+
+draw_cell win grid i = if (arr.get grid i > 0) (sdl.fill_rect win (sdl.rect ((i % cols) * cell_sz) ((i / cols) * cell_sz) (cell_sz - 1) (cell_sz - 1)) sdl.green) 0
+
+set_title win gen playing = sdl.set_title win title
+  status = if (playing > 0) "Playing" "Paused"
+  title = "Life [" + status + "] Gen " + toString gen

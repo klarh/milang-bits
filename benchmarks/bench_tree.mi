@@ -1,0 +1,25 @@
+-- Benchmark: Binary search tree — insert 10000 values, sum all nodes
+-- Tests: record creation, tree traversal, persistent data structures
+
+mk_leaf v = {val = v; left = Nothing; right = Nothing}
+mk_inner v l r = {val = v; left = l; right = r}
+empty_rec = {val = 0; left = Nothing; right = Nothing}
+unwrap t = default empty_rec t
+
+bst_insert t v = if (t == Nothing) (Just (mk_leaf v)) \
+  (insert_node (unwrap t) v)
+
+insert_node node v = if (v < node.val) \
+  (Just (mk_inner node.val (bst_insert node.left v) node.right)) \
+  (Just (mk_inner node.val node.left (bst_insert node.right v)))
+
+sum_tree t = if (t == Nothing) 0 (sum_node (unwrap t))
+sum_node node = node.val + sum_tree node.left + sum_tree node.right
+
+tree_rng s = (s * 1103515245 + 12345) % 2147483648
+
+build_tree n s t = if (n <= 0) t \
+  (build_tree (n - 1) (tree_rng s) (bst_insert t (s % 100000)))
+
+main world = world.io.println (toString \
+  (sum_tree (build_tree 10000 42 Nothing)))
