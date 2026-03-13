@@ -1,0 +1,106 @@
+-- odeque: Okasaki Deque — purely functional double-ended queue
+--
+-- O(1) amortized push/pop from both ends.
+-- Immutable: all operations return new deques.
+-- Uses two cons lists (front and back) with split rebalancing.
+-- O(1) reverse by swapping the two lists.
+
+-- Helpers for record construction (avoids {}-as-where-clause parsing ambiguity)
+oq_mk f b fs bs = {f = f; b = b; fs = fs; bs = bs}
+oq_result v r = {val = v; rest = r}
+
+-- Internal: reverse a list
+oq_rev xs = fold (\acc x -> concat [x] acc) [] xs
+
+-- Internal: take first n elements (tail-recursive, caller guarantees len >= n)
+oq_take n xs = oq_rev (oq_take_go n xs [])
+oq_take_go n xs acc = if (n <= 0) acc \
+  (oq_take_go (n - 1) (default [] (tail xs)) (concat [default 0 (head xs)] acc))
+
+-- Internal: drop first n elements (tail-recursive)
+oq_drop n xs = if (n <= 0) xs \
+  (oq_drop (n - 1) (default [] (tail xs)))
+
+-- Internal: rebalance when one side is empty and total > 1
+oq_rebal dq = if (dq.fs == 0) \
+  (if (dq.bs > 1) (oq_split_b dq) dq) \
+  (if (dq.bs == 0) \
+    (if (dq.fs > 1) (oq_split_f dq) dq) \
+    dq)
+
+oq_split_b dq = oq_mk (oq_rev (oq_drop sb_n dq.b)) (oq_take sb_n dq.b) \
+  (dq.bs - sb_n) sb_n
+  sb_n = dq.bs / 2
+
+oq_split_f dq = oq_mk (oq_take sf_n dq.f) (oq_rev (oq_drop sf_n dq.f)) \
+  sf_n (dq.fs - sf_n)
+  sf_n = dq.fs / 2
+
+-- Create an empty deque
+empty = oq_mk [] [] 0 0
+
+-- Check if deque is empty
+is_empty dq = dq.fs + dq.bs == 0
+
+-- Number of elements
+size dq = dq.fs + dq.bs
+
+-- Push element to front (O(1) amortized)
+push_front x dq = oq_rebal (oq_mk (concat [x] dq.f) dq.b (dq.fs + 1) dq.bs)
+
+-- Push element to back (O(1) amortized)
+push_back x dq = oq_rebal (oq_mk dq.f (concat [x] dq.b) dq.fs (dq.bs + 1))
+
+-- Peek at front element (returns Maybe)
+peek_front dq = if (dq.fs > 0) (head dq.f) \
+  (if (dq.bs > 0) (head dq.b) Nothing)
+
+-- Peek at back element (returns Maybe)
+peek_back dq = if (dq.bs > 0) (head dq.b) \
+  (if (dq.fs > 0) (head dq.f) Nothing)
+
+-- Pop from front: returns Just {val; rest} or Nothing
+pop_front dq = if (dq.fs > 0) \
+  (Just (oq_result (default 0 (head dq.f)) \
+    (oq_rebal (oq_mk (default [] (tail dq.f)) dq.b (dq.fs - 1) dq.bs)))) \
+  (if (dq.bs > 0) \
+    (Just (oq_result (default 0 (head dq.b)) empty)) \
+    Nothing)
+
+-- Pop from back: returns Just {val; rest} or Nothing
+pop_back dq = if (dq.bs > 0) \
+  (Just (oq_result (default 0 (head dq.b)) \
+    (oq_rebal (oq_mk dq.f (default [] (tail dq.b)) dq.fs (dq.bs - 1))))) \
+  (if (dq.fs > 0) \
+    (Just (oq_result (default 0 (head dq.f)) empty)) \
+    Nothing)
+
+-- Reverse a deque (O(1) — just swap front and back)
+reverse dq = oq_mk dq.b dq.f dq.bs dq.fs
+
+-- Create deque from list (front-to-back order)
+from_list xs = if (fl_total == 0) empty \
+  (oq_mk (oq_take fl_half xs) (oq_rev (oq_drop fl_half xs)) \
+    fl_half (fl_total - fl_half))
+  fl_total = len xs
+  fl_half = fl_total / 2
+
+-- Convert deque to list (front-to-back order)
+to_list dq = concat dq.f (oq_rev dq.b)
+
+-- Fold from front to back
+fold_left fn acc dq = fold fn (fold fn acc dq.f) (oq_rev dq.b)
+
+-- Fold from back to front
+fold_right fn acc dq = fold fn (fold fn acc dq.b) (oq_rev dq.f)
+
+-- Map a function over all elements
+dq_map fn dq = oq_mk (map fn dq.f) (map fn dq.b) dq.fs dq.bs
+
+-- Filter elements matching predicate
+dq_filter pred dq = oq_mk filt_f filt_b (len filt_f) (len filt_b)
+  filt_f = filter pred dq.f
+  filt_b = filter pred dq.b
+
+-- Check if deque contains an element (O(n))
+contains dq x = fold (\acc e -> if (acc == 1) 1 (if (e == x) 1 0)) 0 (to_list dq)

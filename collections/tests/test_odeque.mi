@@ -1,0 +1,132 @@
+dq = import "../odeque.mi"
+te = import "../../testing/testing.mi"
+
+check :~ [console]
+check label result world = world.io.println (te.fmt label result)
+
+mk_def v r = {val = v; rest = r}
+def_pop = mk_def 0 (dq.empty)
+
+main world =
+  -- Empty deque
+  e = dq.empty
+  check "empty is_empty" (te.ok (dq.is_empty e)) world
+  check "empty size" (te.eq (dq.size e) 0) world
+  check "empty peek_front" (te.eq (dq.peek_front e) Nothing) world
+  check "empty peek_back" (te.eq (dq.peek_back e) Nothing) world
+  check "empty pop_front" (te.eq (dq.pop_front e) Nothing) world
+  check "empty pop_back" (te.eq (dq.pop_back e) Nothing) world
+
+  -- Push front
+  d1 = dq.push_front 10 e
+  check "push_front size" (te.eq (dq.size d1) 1) world
+  check "push_front peek_front" (te.eq (default 0 (dq.peek_front d1)) 10) world
+  check "push_front peek_back" (te.eq (default 0 (dq.peek_back d1)) 10) world
+
+  -- Push back
+  d2 = dq.push_back 20 d1
+  check "push_back size" (te.eq (dq.size d2) 2) world
+  check "push_back peek_front" (te.eq (default 0 (dq.peek_front d2)) 10) world
+  check "push_back peek_back" (te.eq (default 0 (dq.peek_back d2)) 20) world
+
+  -- Push multiple front
+  d3 = dq.push_front 5 d2
+  check "multi push size" (te.eq (dq.size d3) 3) world
+  check "multi push front" (te.eq (default 0 (dq.peek_front d3)) 5) world
+  check "multi push back" (te.eq (default 0 (dq.peek_back d3)) 20) world
+
+  -- Pop front
+  pf = default def_pop (dq.pop_front d3)
+  check "pop_front val" (te.eq pf.val 5) world
+  check "pop_front rest size" (te.eq (dq.size pf.rest) 2) world
+  check "pop_front rest front" (te.eq (default 0 (dq.peek_front pf.rest)) 10) world
+
+  -- Pop back
+  pb = default def_pop (dq.pop_back d3)
+  check "pop_back val" (te.eq pb.val 20) world
+  check "pop_back rest size" (te.eq (dq.size pb.rest) 2) world
+  check "pop_back rest back" (te.eq (default 0 (dq.peek_back pb.rest)) 10) world
+
+  -- Single element pop
+  s1 = dq.push_front 42 e
+  sp = default def_pop (dq.pop_front s1)
+  check "single pop val" (te.eq sp.val 42) world
+  check "single pop empty" (te.ok (dq.is_empty sp.rest)) world
+
+  -- from_list / to_list roundtrip
+  d4 = dq.from_list [1, 2, 3, 4, 5]
+  check "from_list size" (te.eq (dq.size d4) 5) world
+  check "from_list front" (te.eq (default 0 (dq.peek_front d4)) 1) world
+  check "from_list back" (te.eq (default 0 (dq.peek_back d4)) 5) world
+  check "to_list" (te.eq (toString (dq.to_list d4)) (toString [1, 2, 3, 4, 5])) world
+
+  -- Reverse (O(1))
+  d5 = dq.reverse d4
+  check "reverse front" (te.eq (default 0 (dq.peek_front d5)) 5) world
+  check "reverse back" (te.eq (default 0 (dq.peek_back d5)) 1) world
+  check "reverse to_list" (te.eq (toString (dq.to_list d5)) (toString [5, 4, 3, 2, 1])) world
+
+  -- fold_left
+  fl_sum = dq.fold_left (\acc x -> acc + x) 0 d4
+  check "fold_left sum" (te.eq fl_sum 15) world
+
+  -- fold_right
+  fr_sum = dq.fold_right (\acc x -> acc + x) 0 d4
+  check "fold_right sum" (te.eq fr_sum 15) world
+
+  -- dq_map
+  d6 = dq.dq_map (\x -> x * 2) d4
+  check "map to_list" (te.eq (toString (dq.to_list d6)) (toString [2, 4, 6, 8, 10])) world
+
+  -- dq_filter
+  d7 = dq.dq_filter (\x -> x > 2) d4
+  check "filter size" (te.eq (dq.size d7) 3) world
+  check "filter to_list" (te.eq (toString (dq.to_list d7)) (toString [3, 4, 5])) world
+
+  -- contains
+  check "contains yes" (te.eq (dq.contains d4 3) 1) world
+  check "contains no" (te.eq (dq.contains d4 99) 0) world
+
+  -- Rebalance stress: push all to back, pop all from front
+  d8 = fold (\acc x -> dq.push_back x acc) e [1, 2, 3, 4]
+  pf1 = default def_pop (dq.pop_front d8)
+  pf2 = default def_pop (dq.pop_front pf1.rest)
+  pf3 = default def_pop (dq.pop_front pf2.rest)
+  pf4 = default def_pop (dq.pop_front pf3.rest)
+  check "rebal pop1" (te.eq pf1.val 1) world
+  check "rebal pop2" (te.eq pf2.val 2) world
+  check "rebal pop3" (te.eq pf3.val 3) world
+  check "rebal pop4" (te.eq pf4.val 4) world
+  check "rebal empty" (te.ok (dq.is_empty pf4.rest)) world
+
+  -- Alternating ends stress: push front, pop back
+  d9 = fold (\acc x -> dq.push_front x acc) e [1, 2, 3, 4]
+  pb1 = default def_pop (dq.pop_back d9)
+  pb2 = default def_pop (dq.pop_back pb1.rest)
+  pb3 = default def_pop (dq.pop_back pb2.rest)
+  pb4 = default def_pop (dq.pop_back pb3.rest)
+  check "alt pop_back 1" (te.eq pb1.val 1) world
+  check "alt pop_back 2" (te.eq pb2.val 2) world
+  check "alt pop_back 3" (te.eq pb3.val 3) world
+  check "alt pop_back 4" (te.eq pb4.val 4) world
+  check "alt empty" (te.ok (dq.is_empty pb4.rest)) world
+
+  -- Immutability: original deque unchanged after operations
+  d10 = dq.from_list [10, 20, 30]
+  d10b = dq.push_front 5 d10
+  d10c = dq.push_back 40 d10
+  check "immutable orig" (te.eq (dq.size d10) 3) world
+  check "immutable front" (te.eq (dq.size d10b) 4) world
+  check "immutable back" (te.eq (dq.size d10c) 4) world
+
+  -- Larger deque (trigger multiple rebalances)
+  big = fold (\acc x -> dq.push_back x acc) e (range 1 51)
+  check "big size" (te.eq (dq.size big) 50) world
+  check "big front" (te.eq (default 0 (dq.peek_front big)) 1) world
+  check "big back" (te.eq (default 0 (dq.peek_back big)) 50) world
+  big_list = dq.to_list big
+  check "big to_list len" (te.eq (len big_list) 50) world
+  big_sum = dq.fold_left (\acc x -> acc + x) 0 big
+  check "big sum" (te.eq big_sum 1275) world
+
+  0
