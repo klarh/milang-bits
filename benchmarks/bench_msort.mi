@@ -1,0 +1,45 @@
+-- Benchmark: Merge sort on 5000 pseudo-random integers
+-- Avoids filter closures; uses direct comparisons in merge phase
+-- Split alternates elements into two halves (O(n) cons)
+-- Merge uses tail-recursive accumulator + reverse
+
+sort_rng s = (s * 1103515245 + 12345) % 2147483648
+
+gen_data n s acc = if (n <= 0) acc \
+  (gen_data (n - 1) (sort_rng s) (push acc (s % 10000)))
+
+mk_pair a b = {fst = a; snd = b}
+
+-- Empty check: default -1 on head gives -1 for empty (data in [0,9999])
+empty xs = default (0 - 1) (head xs) < 0
+hd xs = default 0 (head xs)
+tl xs = default [] (tail xs)
+
+-- Split: alternating elements into two lists (O(1) cons)
+split xs = split_go xs [] []
+split_go xs a b = if (empty xs) (mk_pair a b) \
+  (split_go (tl xs) b (concat [hd xs] a))
+
+-- Reverse a list (tail-recursive)
+rev xs acc = if (empty xs) acc \
+  (rev (tl xs) (concat [hd xs] acc))
+
+-- Merge two sorted lists (tail-recursive with reverse)
+merge xs ys = rev (merge_acc xs ys []) []
+merge_acc xs ys acc = if (empty xs) (rev_cat ys acc) \
+  (if (empty ys) (rev_cat xs acc) \
+    (merge_cmp (hd xs) (tl xs) (hd ys) (tl ys) acc))
+merge_cmp x xt y yt acc = if (x <= y) \
+  (merge_acc xt (concat [y] yt) (concat [x] acc)) \
+  (merge_acc (concat [x] xt) yt (concat [y] acc))
+
+rev_cat xs acc = fold (\a z -> concat [z] a) acc xs
+
+-- Merge sort: use len only once at top to check size <= 1
+msort xs = if (empty xs) xs \
+  (if (empty (tl xs)) xs \
+    (msort_split (split xs)))
+msort_split p = merge (msort p.fst) (msort p.snd)
+
+main world = world.io.println (toString \
+  (fold (\a x -> a + x) 0 (msort (gen_data 5000 42 []))))
