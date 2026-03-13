@@ -4,7 +4,7 @@
 apply_n f n x = if (n <= 0) x (apply_n f (n - 1) (f x))
 
 build_fns n acc = if (n <= 0) acc \
-  (build_fns (n - 1) (push acc (\x -> x + n)))
+  (build_fns (n - 1) (concat [(\x -> x + n)] acc))
 
 apply_all fns x = fold (\acc f -> f acc) x fns
 

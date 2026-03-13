@@ -6,7 +6,7 @@
 sort_rng s = (s * 1103515245 + 12345) % 2147483648
 
 gen_data n s acc = if (n <= 0) acc \
-  (gen_data (n - 1) (sort_rng s) (push acc (s % 10000)))
+  (gen_data (n - 1) (sort_rng s) (concat [s % 10000] acc))
 
 mk_pair a b = {fst = a; snd = b}
 
