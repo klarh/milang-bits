@@ -36,8 +36,12 @@ all_digits s = if (is_empty s) (0) (all is_digit (chars s))
 all_alpha s = if (is_empty s) (0) (all is_alpha (chars s))
 all_alnum s = if (is_empty s) (0) (all is_alnum (chars s))
 
--- Reverse a string
-str_reverse s = fold (\acc c -> c + acc) "" (chars s)
+-- Reverse a string (chunked: O(n*c) instead of O(n²) for large strings)
+str_reverse s = if (strlen s <= 64) (sr_small s) (sr_chunked s 64)
+  sr_small s = fold (\acc i -> slice s i (i + 1) + acc) "" (range 0 (strlen s))
+  sr_chunked s c = join "" (reverse (map (\i -> sr_small (slice s i (sr_min (i + c) (strlen s)))) (sr_range 0 (strlen s) c)))
+  sr_min a b = if (a < b) a b
+  sr_range st sp step = if (st >= sp) ([]) (concat [st] (sr_range (st + step) sp step))
 
 -- Take/drop for strings
 str_take n s = slice s 0 n

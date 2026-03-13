@@ -1,18 +1,12 @@
 -- Benchmark: String processing — build, reverse, scan
 -- Tests: string concatenation, character access, string traversal
 
+s = import "../strings/strings.mi"
+
 build_str n acc = if (n <= 0) acc \
   (build_str (n - 1) (acc + "abcdefghij"))
 
-rev_str s = rev_build s (strlen s - 1) ""
-rev_build s i acc = if (i < 0) acc \
-  (rev_build s (i - 1) (acc + default "" (charAt s i)))
-
-count_a s i total = if (i >= strlen s) total \
-  (count_a s (i + 1) \
-    (if (default "" (charAt s i) == "a") (total + 1) total))
-
-run_str str = strlen str + strlen (rev_str str) + \
-  count_a str 0 0 + count_a (rev_str str) 0 0
-
-main world = world.io.println (toString (run_str (build_str 1000 "")))
+main world =
+  str = build_str 1000 ""
+  rev = s.str_reverse str
+  world.io.println (toString (strlen str + strlen rev + s.count str "a" + s.count rev "a"))
