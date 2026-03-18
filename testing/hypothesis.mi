@@ -93,14 +93,14 @@ shrink_none _ = []
 run_one gen prop seed = {passed = prop ro.val; val = ro.val; s = ro.s}
   ro = gen seed
 
--- Try to shrink a failing input
-try_shrink prop shrink val depth = if (depth <= 0) val (find_smaller prop shrink val (shrink val) depth)
+-- Try to shrink a failing input (no mutual recursion — modules can't handle it)
+try_shrink prop shrink val depth = if (depth <= 0) val (ts_find prop shrink val (shrink val) depth)
 
-find_smaller prop shrink original candidates depth = \
+ts_find prop shrink original candidates depth = \
   if (len candidates == 0) original \
   (if (prop (default original (head candidates)) == 0) \
     (try_shrink prop shrink (default original (head candidates)) (depth - 1)) \
-    (find_smaller prop shrink original (default [] (tail candidates)) depth))
+    (ts_find prop shrink original (default [] (tail candidates)) depth))
 
 -- Run N tests, stop on first failure
 rs_step gen prop acc _ = if (acc.failed == 1) acc (rs_check gen prop acc)

@@ -1,0 +1,99 @@
+-- strings/strbuf: StringBuilder for efficient string construction
+--
+-- A StringBuilder is a list of string chunks stored in reverse order.
+-- Appending is O(1) (cons onto front). Building the final string is
+-- O(n) via a single join. This avoids the O(n²) cost of repeated
+-- string concatenation.
+--
+-- Functions that would shadow builtins use prefixed names:
+-- sb_trim, sb_replace, sb_slice, sb_indexOf, sb_charAt, sb_repeat, sb_reverse
+-- split_on (not split), starts_with/ends_with (not startsWith/endsWith)
+
+-- ── Internal helpers ──
+
+_rev xs = fold (\acc x -> concat [x] acc) [] xs
+_chars s = map (\i -> slice s i (i + 1)) (range 0 (strlen s))
+_count s sub = if (strlen sub == 0) (0) (len (split s sub) - 1)
+_str_repeat s n = fold (\acc _ -> acc + s) "" (range 0 n)
+_str_reverse s = fold (\acc i -> slice s i (i + 1) + acc) "" (range 0 (strlen s))
+_pad_left s width ch = if (strlen s >= width) (s) (_str_repeat ch (width - strlen s) + s)
+_pad_right s width ch = if (strlen s >= width) (s) (s + _str_repeat ch (width - strlen s))
+_center s width ch = if (strlen s >= width) (s) \
+  (_str_repeat ch ((width - strlen s) / 2) + s + _str_repeat ch (width - strlen s - ((width - strlen s) / 2)))
+_capitalize s = if (strlen s == 0) ("") (toUpper (slice s 0 1) + slice s 1 (strlen s))
+_title_case s = unwords (map _capitalize (words s))
+_snake_to_camel s = fold (\acc w -> if (acc == "") (w) (acc + _capitalize w)) "" (split s "_")
+_is_upper ch = if (strlen ch /= 1) (0) (if (ch >= "A") (if (ch <= "Z") (1) (0)) (0))
+_camel_to_snake s = fold (\acc ch -> if (_is_upper ch) (if (acc == "") (toLower ch) (acc + "_" + toLower ch)) (acc + ch)) "" (_chars s)
+
+-- ── Construction ──
+
+empty = []
+from str = [str]
+append buf str = concat [str] buf
+append_all buf strs = fold (\b s -> append b s) buf strs
+append_char buf ch = concat [ch] buf
+merge buf1 buf2 = fold (\b s -> append b s) buf1 (_rev buf2)
+join_with buf sep str = if (is_empty buf) (from str) (append (append buf sep) str)
+
+-- ── Conversion ──
+
+build buf = join "" (_rev buf)
+to_string buf = build buf
+length buf = strlen (build buf)
+
+-- ── Queries ──
+
+is_empty buf = len buf == 0
+chunks buf = len buf
+
+-- ── String operations (return StringBuilder) ──
+
+sb_repeat str n = fold (\b _ -> append b str) empty (range 0 n)
+sb_reverse buf = from (_str_reverse (build buf))
+to_upper buf = from (toUpper (build buf))
+to_lower buf = from (toLower (build buf))
+sb_trim buf = from (trim (build buf))
+sb_replace buf old new = from (replace (build buf) old new)
+take buf n = from (slice (build buf) 0 n)
+drop buf n = from (slice s n (len s))
+  s = build buf
+sb_slice buf start end = from (slice (build buf) start end)
+split_on buf sep = split (build buf) sep
+to_words buf = words (build buf)
+to_lines buf = lines (build buf)
+
+-- ── String queries ──
+
+sb_indexOf buf sub = indexOf (build buf) sub
+count buf sub = _count (build buf) sub
+sb_charAt buf i = charAt (build buf) i
+starts_with buf prefix = slice (build buf) 0 (strlen prefix) == prefix
+ends_with buf suffix = slice s (strlen s - strlen suffix) (strlen s) == suffix
+  s = build buf
+
+-- ── Character-level operations ──
+
+chars buf = _chars (build buf)
+count_chars buf pred = fold (\acc c -> if (pred c) (acc + 1) acc) 0 (chars buf)
+filter_chars buf pred = from (fold (\acc c -> if (pred c) (acc + c) acc) "" (chars buf))
+map_chars buf f = from (fold (\acc c -> acc + f c) "" (chars buf))
+
+-- ── Padding / alignment ──
+
+pad_left buf width ch = from (_pad_left (build buf) width ch)
+pad_right buf width ch = from (_pad_right (build buf) width ch)
+center buf width ch = from (_center (build buf) width ch)
+
+-- ── Case conversion ──
+
+capitalize buf = from (_capitalize (build buf))
+title_case buf = from (_title_case (build buf))
+snake_to_camel buf = from (_snake_to_camel (build buf))
+camel_to_snake buf = from (_camel_to_snake (build buf))
+
+-- ── Convenience builders ──
+
+join_all sep strs = from (join sep strs)
+build_range f start end = fold (\b i -> append b (f i)) empty (range start end)
+intersperse buf sep = from (join sep (_rev buf))

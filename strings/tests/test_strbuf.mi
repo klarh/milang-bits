@@ -1,0 +1,91 @@
+sb = import "../strbuf.mi"
+
+check label got expected world =
+  msg = if (toString got == toString expected) \
+    ("PASS: " + label) \
+    ("FAIL: " + label + " got=" + toString got + " expected=" + toString expected)
+  world.io.println msg
+
+main world =
+  -- Construction
+  check "empty" (sb.build sb.empty) "" world
+  check "from" (sb.build (sb.from "hello")) "hello" world
+  check "append" (sb.build (sb.append (sb.from "hello") " world")) "hello world" world
+  check "append_char" (sb.build (sb.append_char (sb.from "ab") "c")) "abc" world
+
+  b1 = sb.append (sb.append (sb.from "a") "b") "c"
+  check "multi append" (sb.build b1) "abc" world
+
+  b2 = sb.append_all sb.empty ["hello", " ", "world"]
+  check "append_all" (sb.build b2) "hello world" world
+
+  left = sb.append (sb.from "ab") "cd"
+  right = sb.append (sb.from "ef") "gh"
+  check "merge" (sb.build (sb.merge left right)) "abcdefgh" world
+
+  b3 = sb.join_with (sb.join_with (sb.from "a") ", " "b") ", " "c"
+  check "join_with" (sb.build b3) "a, b, c" world
+
+  -- Queries
+  check "is_empty true" (sb.is_empty sb.empty) 1 world
+  check "is_empty false" (sb.is_empty (sb.from "x")) 0 world
+  check "chunks" (sb.chunks b1) 3 world
+  check "length" (sb.length (sb.from "hello")) 5 world
+
+  -- String ops
+  check "repeat" (sb.build (sb.sb_repeat "ab" 3)) "ababab" world
+  check "repeat 0" (sb.build (sb.sb_repeat "ab" 0)) "" world
+  check "reversed" (sb.build (sb.sb_reverse (sb.from "hello"))) "olleh" world
+  check "reversed multi" (sb.build (sb.sb_reverse (sb.append (sb.from "abc") "def"))) "fedcba" world
+  check "to_upper" (sb.build (sb.to_upper (sb.from "hello"))) "HELLO" world
+  check "to_lower" (sb.build (sb.to_lower (sb.from "HELLO"))) "hello" world
+  check "trim" (sb.build (sb.sb_trim (sb.from "  hi  "))) "hi" world
+  check "replace" (sb.build (sb.sb_replace (sb.from "hello world") "world" "milang")) "hello milang" world
+
+  -- Take/drop
+  check "take" (sb.build (sb.take (sb.from "hello") 3)) "hel" world
+  check "drop" (sb.build (sb.drop (sb.from "hello") 2)) "llo" world
+
+  -- Take/drop/slice
+  check "slice" (sb.build (sb.sb_slice (sb.from "hello world") 6 11)) "world" world
+  check "slice start" (sb.build (sb.sb_slice (sb.from "abcdef") 0 3)) "abc" world
+
+  -- Split/words/lines
+  check "split" (sb.split_on (sb.from "a,b,c") ",") ["a", "b", "c"] world
+  check "to_words" (sb.to_words (sb.from "hello world")) ["hello", "world"] world
+  check "to_lines" (sb.to_lines (sb.from "a\nb\nc")) ["a", "b", "c"] world
+
+  -- Search
+  check "indexOf" (sb.sb_indexOf (sb.from "hello") "ll") 2 world
+  check "indexOf miss" (sb.sb_indexOf (sb.from "hello") "xyz") (0 - 1) world
+  check "count" (sb.count (sb.from "abcabc") "a") 2 world
+  check "charAt" (default "" (sb.sb_charAt (sb.from "hello") 1)) "e" world
+  check "startsWith" (sb.starts_with (sb.from "hello") "hel") 1 world
+  check "endsWith" (sb.ends_with (sb.from "hello") "llo") 1 world
+
+  -- Char-level
+  check "chars" (sb.chars (sb.from "abc")) ["a", "b", "c"] world
+  check "filter_chars" (sb.build (sb.filter_chars (sb.from "a1b2c3") (\c -> c >= "a"))) "abc" world
+  check "map_chars" (sb.build (sb.map_chars (sb.from "abc") toUpper)) "ABC" world
+
+  -- Padding
+  check "pad_left" (sb.build (sb.pad_left (sb.from "hi") 5 ".")) "...hi" world
+  check "pad_right" (sb.build (sb.pad_right (sb.from "hi") 5 ".")) "hi..." world
+  check "center" (sb.build (sb.center (sb.from "hi") 6 ".")) "..hi.." world
+
+  -- Case conversion
+  check "capitalize" (sb.build (sb.capitalize (sb.from "hello"))) "Hello" world
+  check "title_case" (sb.build (sb.title_case (sb.from "hello world"))) "Hello World" world
+  check "snake_to_camel" (sb.build (sb.snake_to_camel (sb.from "hello_world"))) "helloWorld" world
+  check "camel_to_snake" (sb.build (sb.camel_to_snake (sb.from "helloWorld"))) "hello_world" world
+
+  -- Convenience builders
+  check "join_all" (sb.build (sb.join_all ", " ["a", "b", "c"])) "a, b, c" world
+  check "build_range" (sb.build (sb.build_range (\i -> toString i) 0 5)) "01234" world
+  check "intersperse" (sb.build (sb.intersperse (sb.append (sb.append (sb.from "a") "b") "c") "-")) "a-b-c" world
+
+  -- Performance
+  big = sb.sb_repeat "abcdefghij" 1000
+  check "big length" (sb.length big) 10000 world
+  check "big chunks" (sb.chunks big) 1000 world
+  0
