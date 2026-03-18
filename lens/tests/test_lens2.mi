@@ -1,0 +1,50 @@
+-- Test lens library: int operations, path_lens, first, last, set_if
+l = import "../lens.mi"
+
+check label got expected world = \
+  if (got == expected) \
+    (world.io.println ("PASS: " + label)) \
+    (world.io.println ("FAIL: " + label + "\n  got:      " + toString got + "\n  expected: " + toString expected))
+
+person = {name = "Alice"; age = 30; address = {city = "NYC"; zip = "10001"}}
+
+main world =
+  -- field lens: int
+  age_lens = l.field "age"
+  check "view age" (l.view age_lens person) 30 world
+
+  -- set preserves other int fields
+  name_lens = l.field "name"
+  p2 = l.set name_lens person "Bob"
+  check "set preserves age" (l.view age_lens p2) 30 world
+
+  -- over (modify)
+  p3 = l.over age_lens (\x -> x + 1) person
+  check "over age +1" (l.view age_lens p3) 31 world
+
+  -- identity lens
+  check "id view" (l.view l.id_lens 42) 42 world
+
+  -- field_default missing
+  dl = l.field_default "missing" 99
+  check "field_default missing" (l.view dl person) 99 world
+
+  -- first_lens and last_lens
+  xs = [10, 20, 30]
+  check "first view" (l.view l.first_lens xs) 10 world
+  xs2 = l.set l.first_lens xs 99
+  check "first set" (l.view l.first_lens xs2) 99 world
+  check "last view" (l.view l.last_lens xs) 30 world
+
+  -- set_if
+  p7 = l.set_if age_lens (\v -> v > 0) person 25
+  check "set_if true" (l.view age_lens p7) 25 world
+  p8 = l.set_if age_lens (\v -> v > 100) person 25
+  check "set_if false" (l.view age_lens p8) 30 world
+
+  -- chained operations
+  city_lens = l.compose (l.field "address") (l.field "city")
+  p9 = l.set city_lens (l.over age_lens (\a -> a * 2) person) "Boston"
+  check "chained age" (l.view age_lens p9) 60 world
+
+  0

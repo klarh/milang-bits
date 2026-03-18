@@ -5,8 +5,8 @@
 --       or {ok = 0; err = message; pos = pos}
 
 -- Result constructors
-ok_r val pos = {ok = 1; val = val; pos = pos}
-err_r msg pos = {ok = 0; err = msg; pos = pos}
+ok_r val pos = {ok = 1; val = val; err = ""; pos = pos}
+err_r msg pos = {ok = 0; val = ""; err = msg; pos = pos}
 
 -- Run a parser on input from position 0
 run p input = p input 0

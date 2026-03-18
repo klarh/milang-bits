@@ -8,12 +8,11 @@
 --   set : record -> value -> record
 
 -- Create a lens for a field name
--- Uses getField (returns Maybe) and unwraps with default 0
-field_get name r = default 0 (getField r name 0)
+field_get name r = (getField r name).val
 field name = {get = field_get name; set = (\r v -> setField r name v)}
 
 -- Create a lens with a custom default for missing fields
-field_default name dflt = {get = (\r -> default dflt (getField r name 0)); \
+field_default name dflt = {get = (\r -> default dflt (getField r name)); \
   set = (\r v -> setField r name v)}
 
 -- Compose two lenses: outer.inner

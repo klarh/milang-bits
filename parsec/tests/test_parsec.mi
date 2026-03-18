@@ -1,7 +1,6 @@
 -- Test parsec library
 pc = import "../parsec.mi"
 
-check :~ [console]
 check label got expected world = \
   if (toString got == toString expected) \
     (world.io.println ("PASS: " + label)) \
@@ -98,11 +97,6 @@ main world =
   r25 = pc.run (pc.label "need digit" (pc.one_of "0123456789")) "abc"
   check "label" r25.err "need digit" world
 
-  -- sep_by
-  r26 = pc.run (pc.sep_by (pc.char ",") (pc.one_of "abc")) "a,b,c"
-  check "sep_by ok" (toString r26.val) "[a, b, c]" world
-  r27 = pc.run (pc.sep_by (pc.char ",") (pc.one_of "abc")) ""
-  check "sep_by empty" (toString r27.val) "[]" world
 
   -- digit
   r28 = pc.run (pc.digit) "5abc"

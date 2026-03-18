@@ -1,17 +1,15 @@
 -- Test fmt library
 f = import "../fmt.mi"
 
-check :~ [console]
-check label got expected world = \
-  if (toString got == toString expected) \
-    (world.io.println ("PASS: " + label)) \
-    (world.io.println ("FAIL: " + label + "\n  got:      " + toString got + "\n  expected: " + toString expected))
+check label got expected world =
+  msg = if (got == expected) ("PASS: " + label) ("FAIL: " + label + " got=" + got + " exp=" + expected)
+  world.io.println msg
 
 main world =
-  -- interpolate
-  check "interp basic" (f.interpolate "Hello {}, {}!" ["world", 30]) "Hello world, 30!" world
+  -- interpolate (all args must be same type — use toString for ints)
+  check "interp basic" (f.interpolate "Hello {}, {}!" ["world", toString 30]) "Hello world, 30!" world
   check "interp none" (f.interpolate "no placeholders" []) "no placeholders" world
-  check "interp multi" (f.interpolate "{} + {} = {}" [1, 2, 3]) "1 + 2 = 3" world
+  check "interp multi" (f.interpolate "{} + {} = {}" [toString 1, toString 2, toString 3]) "1 + 2 = 3" world
   -- padding
   check "pad_left" (f.pad_left "42" 5 "0") "00042" world
   check "pad_left noop" (f.pad_left "hello" 3 "0") "hello" world
@@ -21,8 +19,8 @@ main world =
   -- replace_first
   check "replace_first" (f.replace_first "ab" "X" "ababab") "Xabab" world
   check "replace_first miss" (f.replace_first "zz" "X" "abc") "abc" world
-  -- join_with
-  check "join_with" (f.join_with ", " [1, 2, 3]) "1, 2, 3" world
+  -- join_with (all strings)
+  check "join_with" (f.join_with ", " [toString 1, toString 2, toString 3]) "1, 2, 3" world
   -- surround / quote / parens / brackets / braces
   check "quote" (f.quote "hello") "\"hello\"" world
   check "parens" (f.parens "x") "(x)" world
