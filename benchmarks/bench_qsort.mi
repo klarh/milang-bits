@@ -1,0 +1,25 @@
+-- Benchmark: Functional quicksort on 5000 pseudo-random integers
+-- Single-pass partition returning record, cons-based join
+
+sort_rng s = (s * 1103515245 + 12345) % 2147483648
+
+gen_data n s acc = if (n <= 0) acc \
+  (gen_data (n - 1) (sort_rng s) (concat [s % 10000] acc))
+
+empty xs = default (0 - 1) (head xs) < 0
+hd xs = default 0 (head xs)
+tl xs = default [] (tail xs)
+
+partition p xs lo hi = if (empty xs) ({lo = lo; hi = hi}) \
+  (if (hd xs < p) \
+    (partition p (tl xs) (concat [hd xs] lo) hi) \
+    (partition p (tl xs) lo (concat [hd xs] hi)))
+
+qsort xs = if (empty xs) xs \
+  (qsort_parts (hd xs) (partition (hd xs) (tl xs) [] []))
+
+qsort_parts p parts = \
+  concat (qsort parts.lo) (concat [p] (qsort parts.hi))
+
+main world = world.io.println (toString \
+  (fold (\a x -> a + x) 0 (qsort (gen_data 5000 42 []))))

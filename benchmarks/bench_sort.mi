@@ -1,19 +1,25 @@
--- Benchmark: Functional quicksort on 5000 pseudo-random integers
--- Tests: list manipulation, higher-order functions (filter), recursion
+-- Benchmark: Sort 5000 pseudo-random integers
+-- Treesort (BST insert + in-order flatten) — idiomatic for linked lists
+-- No closures needed: all comparisons are direct < operations
 
 sort_rng s = (s * 1103515245 + 12345) % 2147483648
 
 gen_data n s acc = if (n <= 0) acc \
   (gen_data (n - 1) (sort_rng s) (concat [s % 10000] acc))
 
--- Sentinel -1 detects empty lists (data is in [0,9999])
-qsort xs = if (default (0 - 1) (head xs) < 0) xs \
-  (qsort_go (default 0 (head xs)) (default [] (tail xs)))
+mk_leaf = {tag = "L"}
+mk_node l v r = {tag = "N"; left = l; val = v; right = r}
 
-qsort_go p rest = if (default (0 - 1) (head rest) < 0) (push [] p) \
-  (concat \
-    (push (qsort (filter (\x -> x < p) rest)) p) \
-    (qsort (filter (\x -> x >= p) rest)))
+ins t x = if (t.tag == "L") (mk_node mk_leaf x mk_leaf) \
+  (if (x < t.val) (mk_node (ins t.left x) t.val t.right) \
+    (mk_node t.left t.val (ins t.right x)))
+
+build xs = fold (\t x -> ins t x) mk_leaf xs
+
+flatten t acc = if (t.tag == "L") acc \
+  (flatten t.left (concat [t.val] (flatten t.right acc)))
+
+tsort xs = flatten (build xs) []
 
 main world = world.io.println (toString \
-  (fold (\a x -> a + x) 0 (qsort (gen_data 5000 42 []))))
+  (fold (\a x -> a + x) 0 (tsort (gen_data 5000 42 []))))
